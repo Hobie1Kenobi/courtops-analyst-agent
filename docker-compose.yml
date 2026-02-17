@@ -24,6 +24,8 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-courtops}:${POSTGRES_PASSWORD:-courtops_password}@db:5432/${POSTGRES_DB:-courtops_db}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
     depends_on:
       - db
       - redis
