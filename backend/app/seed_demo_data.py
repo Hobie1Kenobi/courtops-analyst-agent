@@ -213,6 +213,81 @@ def create_patches(db: Session) -> None:
     db.commit()
 
 
+def create_demo_agent_guarantee(db: Session) -> None:
+    """
+    Guarantee data so the agent demo (Option B) has work to do:
+    - 5 open access-issue tickets (for triage + resolve_ticket)
+    - 2 overdue open tickets (for sla_sweep + escalate_overdue_tickets)
+    - 3 out-of-compliance devices (for inventory_compliance_check + create_patch_record)
+    """
+    users = db.query(User).all()
+    if not users:
+        return
+    user = users[0]
+    today_dt = datetime.utcnow()
+    today_date = date.today()
+
+    for title, desc in [
+        ("DEMO Access - password reset needed", "User cannot log in; password reset requested"),
+        ("DEMO Access - RBAC check", "New hire needs role assignment for case entry"),
+        ("DEMO Access - login lockout", "Account locked after failed attempts"),
+        ("DEMO Access - VPN access", "Request for VPN to access court system remotely"),
+        ("DEMO Access - shared drive", "Need read access to shared drive for reports"),
+    ]:
+        if db.query(Ticket).filter(Ticket.title == title).first():
+            continue
+        t = Ticket(
+            title=title,
+            description=desc,
+            category=TicketCategory.ACCESS,
+            priority=TicketPriority.HIGH,
+            status=TicketStatus.OPEN,
+            requester_id=user.id,
+            assignee_id=user.id,
+            created_at=today_dt - timedelta(days=1),
+        )
+        t.set_due_from_sla()
+        db.add(t)
+
+    past = today_dt - timedelta(days=5)
+    for i in range(2):
+        title = f"DEMO Overdue ticket {i+1}"
+        if db.query(Ticket).filter(Ticket.title == title).first():
+            continue
+        t = Ticket(
+            title=title,
+            description="Demo overdue ticket for SLA sweep.",
+            category=TicketCategory.APPLICATION,
+            priority=TicketPriority.HIGH,
+            status=TicketStatus.OPEN,
+            requester_id=user.id,
+            assignee_id=user.id,
+            created_at=past,
+        )
+        t.set_due_from_sla()
+        db.add(t)
+
+    for tag, loc in [
+        ("MC-DEMO-1", "Clerk Office"),
+        ("MC-DEMO-2", "Courtroom 101"),
+        ("MC-DEMO-3", "Records"),
+    ]:
+        if db.query(Device).filter(Device.asset_tag == tag).first():
+            continue
+        device = Device(
+            asset_tag=tag,
+            type="Desktop",
+            location=loc,
+            assigned_user="Clerk A",
+            warranty_end=today_date + timedelta(days=14),
+            last_patch_date=today_date - timedelta(days=100),
+            status=DeviceStatus.IN_SERVICE,
+        )
+        db.add(device)
+
+    db.commit()
+
+
 def create_change_requests(db: Session) -> None:
     titles = [
         "Online payment workflow enhancement",
@@ -235,13 +310,21 @@ def create_change_requests(db: Session) -> None:
 
 
 def main() -> None:
+    import os
+    import sys
+    demo_only = "--demo-only" in sys.argv or os.environ.get("DEMO_ONLY") == "1"
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
         create_users(db)
+        if demo_only:
+            create_demo_agent_guarantee(db)
+            print("Demo agent guarantee data added (access tickets, overdue tickets, out-of-compliance devices).")
+            return
         create_cases(db)
         create_tickets(db)
         create_devices(db)
+        create_demo_agent_guarantee(db)
         create_patches(db)
         create_change_requests(db)
     finally:
