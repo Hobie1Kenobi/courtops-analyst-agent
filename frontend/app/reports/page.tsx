@@ -15,6 +15,8 @@ export default function ReportsPage() {
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generateMessage, setGenerateMessage] = useState<string | null>(null);
+  const [generatingRAR, setGeneratingRAR] = useState(false);
+  const [generateRARMessage, setGenerateRARMessage] = useState<string | null>(null);
 
   function loadReports() {
     setError(null);
@@ -71,6 +73,54 @@ export default function ReportsPage() {
       await downloadWithAuth(
         `/reports/monthly/${period}/pdf`,
         `monthly_operations_${period}.pdf`
+      );
+    } catch {
+      setDownloadError("Download failed. Make sure you are logged in.");
+    } finally {
+      setDownloading(null);
+    }
+  }
+
+  async function handleGenerateRevenueAtRisk() {
+    setDownloadError(null);
+    setGenerateRARMessage(null);
+    setGeneratingRAR(true);
+    try {
+      const result = await apiFetch<{ period: string; message: string }>(
+        "/reports/revenue-at-risk/generate",
+        { method: "POST" }
+      );
+      setGenerateRARMessage(result.message);
+      loadReports();
+    } catch {
+      setDownloadError("Generate failed. Make sure you are logged in.");
+    } finally {
+      setGeneratingRAR(false);
+    }
+  }
+
+  async function handleRevenueAtRiskPdfDownload(period: string) {
+    setDownloadError(null);
+    setDownloading(`rar-${period}`);
+    try {
+      await downloadWithAuth(
+        `/reports/revenue-at-risk/${period}/pdf`,
+        `revenue_at_risk_fta_${period}.pdf`
+      );
+    } catch {
+      setDownloadError("Download failed. Make sure you are logged in.");
+    } finally {
+      setDownloading(null);
+    }
+  }
+
+  async function handleRevenueAtRiskCsvDownload() {
+    setDownloadError(null);
+    setDownloading("rar-csv");
+    try {
+      await downloadWithAuth(
+        "/reports/revenue-at-risk.csv",
+        "revenue_at_risk_fta.csv"
       );
     } catch {
       setDownloadError("Download failed. Make sure you are logged in.");
@@ -136,6 +186,52 @@ export default function ReportsPage() {
                 </li>
               )}
             </ul>
+          )}
+        </section>
+        <section className="rounded-md border bg-white p-4">
+          <h3 className="text-sm font-semibold text-slate-800">
+            Revenue at Risk (FTA)
+          </h3>
+          <p className="mt-2 text-xs text-slate-600">
+            Crystal Reports-style: FTA/warrant cases grouped by violation type with
+            days overdue and outstanding balance. Generate PDF or download CSV.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleGenerateRevenueAtRisk}
+              disabled={generatingRAR}
+              className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+            >
+              {generatingRAR ? "Generating…" : "Generate Revenue at Risk report"}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleRevenueAtRiskCsvDownload()}
+              disabled={!!downloading}
+              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            >
+              {downloading === "rar-csv" ? "Downloading…" : "Download CSV"}
+            </button>
+          </div>
+          {generateRARMessage && (
+            <p className="mt-2 text-xs text-green-700">{generateRARMessage}</p>
+          )}
+          {!error && reports.length > 0 && (
+            <p className="mt-2 text-xs text-slate-600">
+              Download PDF:{" "}
+              {[...new Set(reports.map((r) => r.period))].map((period) => (
+                <button
+                  key={period}
+                  type="button"
+                  onClick={() => handleRevenueAtRiskPdfDownload(period)}
+                  disabled={downloading === `rar-${period}`}
+                  className="mr-2 text-primary hover:underline disabled:opacity-60"
+                >
+                  {period}
+                </button>
+              ))}
+            </p>
           )}
         </section>
         <section className="rounded-md border bg-white p-4">

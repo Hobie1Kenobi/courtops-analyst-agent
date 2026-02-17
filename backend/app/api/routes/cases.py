@@ -18,9 +18,12 @@ router = APIRouter(prefix="/cases", tags=["cases"])
 def list_cases(
     db: Session = Depends(get_db),
     _user=Depends(get_current_user),
-) -> List[Case]:
-    # Simple list endpoint with limit for demo
-    return db.query(Case).order_by(Case.filing_date.desc()).limit(200).all()
+) -> List[CaseRead]:
+    cases = db.query(Case).order_by(Case.filing_date.desc()).limit(200).all()
+    return [
+        CaseRead.model_validate(c)
+        for c in cases
+    ]
 
 
 @router.get("/metrics/monthly", response_model=List[CaseMetrics])

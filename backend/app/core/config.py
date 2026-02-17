@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     environment: str = "development"
 
+    database_url: str | None = None
     postgres_user: str = "courtops"
     postgres_password: str = "courtops_password"
     postgres_db: str = "courtops_db"
@@ -19,6 +20,15 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_prefix = ""
+
+    @property
+    def sqlalchemy_database_url(self) -> str:
+        if self.database_url:
+            return self.database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+        return (
+            f"postgresql+psycopg2://{self.postgres_user}:{self.postgres_password}"
+            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        )
 
 
 settings = Settings()

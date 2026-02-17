@@ -175,6 +175,14 @@ This creates:
 - 3–6 months of synthetic court cases, tickets, inventory, and patches
 - Sample audit events and change requests
 
+## Deploying the app
+
+To run the full stack in the cloud (e.g. for a shareable demo) using free-tier hosts, see **[docs/DEPLOY.md](docs/DEPLOY.md)**. It includes:
+
+- **Fly.io** – Fully terminal-driven: install Fly CLI, create Postgres and Redis, deploy backend and frontend from the repo.
+- **Render** – One-time Blueprint setup in the dashboard, then deploy from the terminal with the Render CLI.
+- **Railway** – Terminal-first with the Railway CLI.
+
 ## Testing
 
 To run backend unit tests (SLA, metrics, audit rules):

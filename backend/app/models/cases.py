@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import date, datetime, timedelta
 from enum import Enum
 
 from sqlalchemy import Date, DateTime, Enum as SqlEnum, Float, Integer, String
@@ -14,6 +14,7 @@ class CaseStatus(str, Enum):
     DISMISSED = "dismissed"
     DEFERRED = "deferred"
     WARRANT = "warrant"
+    FTA = "fta"
     PAID = "paid"
 
 
@@ -47,4 +48,24 @@ class Case(Base):
         if not self.disposition_date:
             return None
         return (self.disposition_date - self.filing_date).days
+
+    def outstanding_balance(self) -> float:
+        return max(0.0, self.fine_amount - self.amount_paid)
+
+    def days_overdue(self) -> int | None:
+        if self.status not in (CaseStatus.FTA, CaseStatus.WARRANT):
+            return None
+        due = self.hearing_date if self.hearing_date else self.filing_date + timedelta(days=90)
+        if due is None:
+            return None
+        return max(0, (date.today() - due).days)
+
+
+def violation_group(charge_type: str) -> str:
+    ct = (charge_type or "").strip().lower()
+    if any(x in ct for x in ("speeding", "parking", "registration", "insurance", "traffic")):
+        return "Traffic Violations (High Priority)"
+    if any(x in ct for x in ("ordinance", "code enforcement", "properties", "city ordinance")):
+        return "City Ordinance (Code Enforcement)"
+    return "Other"
 

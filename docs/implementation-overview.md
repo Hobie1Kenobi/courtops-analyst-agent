@@ -14,7 +14,7 @@ This document summarizes the concrete implementation work completed for the **Co
   - `audit.py` – `AuditEvent` with `AuditAction` (login success/failure, role change, record edit, report export).
   - `ticket.py` – Help desk `Ticket` with category, priority, status, SLA helper methods and `set_due_from_sla`.
   - `inventory.py` – `Device` for hardware inventory, including warranty and patch dates with helper `is_warranty_expiring_within_days`.
-  - `cases.py` – `Case` with `CaseStatus`, filing/disposition dates, and helpers for case age and time-to-disposition.
+  - `cases.py` – `Case` with `CaseStatus` (including **FTA** for Failure to Appear), filing/disposition dates, and helpers for case age, time-to-disposition, **outstanding_balance**, and **days_overdue**; **violation_group** for reporting (Traffic vs Code Enforcement).
   - `patches.py` – `Patch` representing application/device patches with lifecycle statuses and key dates.
   - `change_requests.py` – `ChangeRequest` with workflow fields and `ChangeRequestStatus`.
 
@@ -33,6 +33,9 @@ This document summarizes the concrete implementation work completed for the **Co
   - `reports.py` – Reporting endpoints:
     - `/reports/monthly` – discover monthly bundles under `reports/YYYY-MM`.
     - `/reports/monthly/{period}/pdf` – download the main PDF.
+    - `/reports/revenue-at-risk/generate` – generate **Revenue at Risk (FTA)** PDF (grouped by violation type, days overdue, outstanding balance).
+    - `/reports/revenue-at-risk/{period}/pdf` – download that PDF.
+    - `/reports/revenue-at-risk.csv` – Crystal Reports-style CSV for FTA/warrant cases.
     - `/reports/custom-query.csv` – limited "Crystal Reports style" CSV export for `cases`, `tickets`, or `devices`.
 
 - **Schemas (`app/schemas/`)**

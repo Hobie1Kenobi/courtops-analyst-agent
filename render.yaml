@@ -1,0 +1,63 @@
+# Render Blueprint: CourtOps Analyst Agent
+# One-time: connect this repo at https://dashboard.render.com/blueprints and select this file.
+# Then: deploys happen on git push, or use Render CLI: render deploy
+
+databases:
+  - name: courtops-db
+    databaseName: courtops_db
+    user: courtops
+    plan: free
+
+services:
+  - type: redis
+    name: courtops-redis
+    plan: free
+
+  - type: web
+    name: courtops-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: courtops-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: courtops-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+  - type: web
+    name: courtops-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    envVars:
+      - key: NEXT_PUBLIC_API_BASE_URL
+        fromService:
+          type: web
+          name: courtops-backend
+          property: host
+
+  - type: worker
+    name: courtops-worker
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: celery -A app.celery_app.celery_app worker --loglevel=INFO
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: courtops-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: courtops-redis
+          property: connectionString

@@ -8,7 +8,11 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models import Case, Device, Ticket
-from app.services.reporting import run_monthly_report
+from app.services.reporting import (
+    get_revenue_at_risk_cases,
+    run_monthly_report,
+    run_revenue_at_risk_report,
+)
 
 
 REPORT_ROOT = Path(__file__).resolve().parents[3] / "reports"
@@ -61,6 +65,63 @@ def download_monthly_pdf(
         raise HTTPException(status_code=404, detail="No PDF report for period")
     pdf = pdfs[0]
     return FileResponse(pdf, media_type="application/pdf", filename=pdf.name)
+
+
+@router.post("/revenue-at-risk/generate")
+def generate_revenue_at_risk_now(
+    min_days_overdue: int = 90,
+    db: Session = Depends(get_db),
+    _user=Depends(get_current_user),
+) -> dict:
+    """Generate the Revenue at Risk (FTA) report for the current period. Creates PDF under reports/YYYY-MM."""
+    from datetime import date
+
+    period = date.today().strftime("%Y-%m")
+    path = run_revenue_at_risk_report(db, period=period, min_days_overdue=min_days_overdue)
+    return {"period": period, "path": path.name, "message": "Revenue at Risk report generated. Refresh to download."}
+
+
+@router.get("/revenue-at-risk/{period}/pdf")
+def download_revenue_at_risk_pdf(
+    period: str,
+    _user=Depends(get_current_user),
+) -> FileResponse:
+    """Download the Revenue at Risk (FTA) PDF for a given period."""
+    period_dir = REPORT_ROOT / period
+    pdf_path = period_dir / "revenue_at_risk_fta.pdf"
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="Revenue at Risk report not found for period")
+    return FileResponse(pdf_path, media_type="application/pdf", filename=pdf_path.name)
+
+
+@router.get("/revenue-at-risk.csv")
+def revenue_at_risk_csv(
+    min_days_overdue: int = 90,
+    _user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> StreamingResponse:
+    """Crystal Reports-style CSV: Citation, Defendant, Days Overdue, Outstanding Bal., grouped by violation type."""
+    import csv
+    from io import StringIO
+
+    buffer = StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(["Group", "Citation", "Defendant", "Violation", "Days Overdue", "Outstanding Bal."])
+    grouped = get_revenue_at_risk_cases(db, min_days_overdue=min_days_overdue)
+    for group_name, rows, subtotal in grouped:
+        for case, days_overdue, outstanding in rows:
+            writer.writerow(
+                [group_name, case.case_number, case.defendant_name, case.charge_type, days_overdue, f"{outstanding:.2f}"]
+            )
+        writer.writerow([group_name, "", "Subtotal", "", "", f"{subtotal:.2f}"])
+    total = sum(t for _, _, t in grouped)
+    writer.writerow(["", "", "TOTAL REVENUE AT RISK", "", "", f"{total:.2f}"])
+    buffer.seek(0)
+    return StreamingResponse(
+        buffer,
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="revenue_at_risk_fta.csv"'},
+    )
 
 
 @router.get("/custom-query.csv")

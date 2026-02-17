@@ -30,9 +30,24 @@ class CaseRead(CaseBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    outstanding_balance: Optional[float] = None
+    days_overdue: Optional[int] = None
 
     class Config:
         from_attributes = True
+
+    @classmethod
+    def model_validate(cls, obj, **kwargs):
+        inst = super().model_validate(obj, **kwargs)
+        if hasattr(obj, "outstanding_balance") and callable(obj.outstanding_balance):
+            inst.outstanding_balance = obj.outstanding_balance()
+        elif hasattr(obj, "outstanding_balance"):
+            inst.outstanding_balance = obj.outstanding_balance
+        if hasattr(obj, "days_overdue") and callable(obj.days_overdue):
+            inst.days_overdue = obj.days_overdue()
+        elif hasattr(obj, "days_overdue"):
+            inst.days_overdue = obj.days_overdue
+        return inst
 
 
 class CaseMetrics(BaseModel):
