@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
 
+    llm_provider: str = "ollama"
+    ollama_base_url: str = "http://localhost:11434/v1/"
+    ollama_model: str = "qwen3:8b"
+
     class Config:
         env_file = ".env"
         env_prefix = ""

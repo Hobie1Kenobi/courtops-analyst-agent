@@ -175,6 +175,34 @@ This creates:
 - 3–6 months of synthetic court cases, tickets, inventory, and patches
 - Sample audit events and change requests
 
+### 4. Ollama Local Agent (optional)
+
+The CourtOps Agent can drive a full demo using a local LLM via [Ollama](https://ollama.ai). The agent only calls whitelisted tools (no shell execution); all actions are audit-logged.
+
+**Env vars** (add to `.env`):
+
+- `LLM_PROVIDER=ollama`
+- `OLLAMA_MODEL=qwen3:8b` (or `llama3.1:8b`)
+- **Backend in Docker on Windows:** `OLLAMA_BASE_URL=http://host.docker.internal:11434/v1/`
+- **Backend not in Docker:** `OLLAMA_BASE_URL=http://localhost:11434/v1/`
+
+Install Ollama, start it, then pull the model (e.g. `ollama pull qwen3:8b`). Open **Agent Console** at `http://localhost:3000/agent`, log in as Analyst/IT Support/Supervisor, and run the **daily_ops_demo** preset (use dry run first to simulate).
+
+If the database was created before the agent integration, add the new audit action for tool logging:  
+`docker compose exec db psql -U courtops -d courtops_db -c "ALTER TYPE auditaction ADD VALUE IF NOT EXISTS 'AGENT_TOOL';"`
+
+### 5. One-command demo (Windows)
+
+From the repo root (with Ollama installed and running):
+
+```bat
+run_demo.bat
+```
+
+This will: check Ollama, pull the model if needed, start Docker Compose, run the seed script, and print next steps. Then open `http://localhost:3000`, log in (e.g. `supervisor` / `password`), go to **Agent Console** (`/agent`), and run the **daily_ops_demo** preset.
+
+**Screenshots:** *(Add screenshot of Agent Console and Reports page here.)*
+
 ## Deploying the app
 
 To run the full stack in the cloud (e.g. for a shareable demo) using free-tier hosts, see **[docs/DEPLOY.md](docs/DEPLOY.md)**. It includes:
@@ -204,8 +232,23 @@ Main navigation:
 - **Change Requests** – Requirements workflow and generated docs
 - **Admin** – User management, roles, and audit logs
 - **Job Responsibilities Mapping** – Requirements Traceability Matrix view
+- **Agent Console** – Run the LLM-driven CourtOps Agent with whitelisted tools (dry run or execute)
 
 The UI follows a clean, government-friendly look: neutral colors, solid contrast, clear typography, and minimal decoration.
+
+## Job Responsibilities Mapping (Agent)
+
+| Functional Analyst duty | Screen / module | Agent tool name | Report / artifact |
+|-------------------------|-----------------|-----------------|--------------------|
+| Refresh public data cache | Agent Console | `refresh_public_dataset` | `data/cache/` |
+| Triage and resolve access tickets | Tickets | `triage_tickets`, `resolve_ticket` | — |
+| SLA sweep and escalate overdue | Tickets | `sla_sweep`, `escalate_overdue_tickets` | — |
+| Inventory compliance check | Inventory | `inventory_compliance_check` | — |
+| Create patch records for out-of-compliance | Patches | `create_patch_record`, `mark_patch_status` | — |
+| Monthly operations report bundle | Reports | `generate_monthly_operations_report` | `reports/YYYY-MM/` |
+| Revenue at Risk (FTA) report | Reports | `generate_revenue_at_risk_report` | `reports/YYYY-MM/revenue_at_risk_fta.pdf` |
+| Monthly audit report | Reports | `generate_audit_report` | `reports/YYYY-MM/audit_report.txt` |
+| Change request + generated docs | Change Requests | `create_change_request`, `generate_change_request_docs` | `docs/generated/` |
 
 ## Requirements Traceability Matrix
 

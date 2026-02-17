@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.session import Base, engine
-from app.api.routes import auth, tickets, cases, inventory, patches, change_requests, reports
+from app.api.routes import agent, auth, tickets, cases, inventory, patches, change_requests, reports
 
 
 def create_app() -> FastAPI:
@@ -30,6 +30,7 @@ def create_app() -> FastAPI:
     app.include_router(patches.router)
     app.include_router(change_requests.router)
     app.include_router(reports.router)
+    app.include_router(agent.router)
 
     @app.get("/health", tags=["system"])
     def health() -> dict[str, str]:

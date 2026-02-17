@@ -7,7 +7,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from sqlalchemy.orm import Session
 
-from app.models import Case, Ticket, Device
+from app.models import AuditEvent, Case, Ticket, Device
 from app.models.cases import CaseStatus, violation_group
 
 
@@ -180,4 +180,28 @@ def run_revenue_at_risk_report(
         period = date.today().strftime("%Y-%m")
     grouped = get_revenue_at_risk_cases(db, min_days_overdue=min_days_overdue)
     return generate_revenue_at_risk_pdf(period, grouped)
+
+
+def generate_audit_report(db: Session, period: str | None = None) -> Path:
+    """Write a simple audit summary report under reports/YYYY-MM/audit_report.txt."""
+    if period is None:
+        period = date.today().strftime("%Y-%m")
+    report_dir = ensure_report_dir(period)
+    path = report_dir / "audit_report.txt"
+    events = (
+        db.query(AuditEvent)
+        .order_by(AuditEvent.created_at.desc())
+        .limit(500)
+        .all()
+    )
+    lines = [
+        f"Audit Report - {period}",
+        f"Generated (UTC): {datetime.utcnow().isoformat()}",
+        f"Total events (sample): {len(events)}",
+        "",
+    ]
+    for e in events[:100]:
+        lines.append(f"{e.created_at.isoformat()} | {e.action.value} | entity={e.entity_type or '-'} | {e.entity_id or '-'}")
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return path
 

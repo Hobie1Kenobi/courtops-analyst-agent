@@ -1,6 +1,6 @@
-from . import auth, tickets, cases, inventory, patches, change_requests, reports  # noqa: F401
+from . import agent, auth, tickets, cases, inventory, patches, change_requests, reports  # noqa: F401
 
-__all__ = ["auth", "tickets", "cases", "inventory", "patches", "change_requests", "reports"]
+__all__ = ["agent", "auth", "tickets", "cases", "inventory", "patches", "change_requests", "reports"]
 
 
 

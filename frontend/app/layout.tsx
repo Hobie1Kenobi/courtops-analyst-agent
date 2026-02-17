@@ -54,6 +54,9 @@ export default function RootLayout({
                 <Link href="/mapping" className="hover:text-primary">
                   Job Mapping
                 </Link>
+                <Link href="/agent" className="hover:text-primary">
+                  Agent Console
+                </Link>
                 <Link
                   href="/login"
                   className="rounded-md border border-slate-200 px-2 py-1 text-xs hover:border-primary hover:text-primary"

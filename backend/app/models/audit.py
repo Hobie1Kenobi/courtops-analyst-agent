@@ -13,6 +13,7 @@ class AuditAction(str, Enum):
     ROLE_CHANGE = "role_change"
     RECORD_EDIT = "record_edit"
     REPORT_EXPORT = "report_export"
+    AGENT_TOOL = "agent_tool"
 
 
 class AuditEvent(Base):
