@@ -1,10 +1,15 @@
+import csv
+from collections import defaultdict
 from datetime import date, datetime, timedelta
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app.models import (
+    Case,
+    CaseStatus,
     ChangeRequest,
     Device,
     Patch,
@@ -30,6 +35,7 @@ DOCS_GENERATED = Path(__file__).resolve().parents[2] / "docs" / "generated"
 
 TOOL_WHITELIST = frozenset({
     "refresh_public_dataset",
+    "get_case_metrics",
     "triage_tickets",
     "resolve_ticket",
     "sla_sweep",
@@ -40,6 +46,7 @@ TOOL_WHITELIST = frozenset({
     "generate_monthly_operations_report",
     "generate_revenue_at_risk_report",
     "generate_audit_report",
+    "generate_custom_query_csv",
     "create_change_request",
     "generate_change_request_docs",
 })
@@ -54,6 +61,17 @@ OPENAI_TOOLS = [
                 "type": "object",
                 "properties": {"source_id": {"type": "string", "description": "Dataset source, e.g. somerville"}},
                 "required": ["source_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_case_metrics",
+            "description": "Return a short summary of case metrics: monthly totals, disposed vs non-disposed, average case age, FTA count if available.",
+            "parameters": {
+                "type": "object",
+                "properties": {"period": {"type": "string", "description": "Optional YYYY-MM to focus on; otherwise last 3 months"}},
             },
         },
     },
@@ -172,6 +190,21 @@ OPENAI_TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "generate_custom_query_csv",
+            "description": "Generate a Crystal Reports–style CSV for an entity (cases, tickets, or devices) and write to reports/{period}/.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "entity": {"type": "string", "enum": ["cases", "tickets", "devices"], "description": "Entity to export"},
+                    "period": {"type": "string", "description": "Optional YYYY-MM for report folder"},
+                },
+                "required": ["entity"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "create_change_request",
             "description": "Create a change request record.",
             "parameters": {
@@ -238,8 +271,43 @@ def _execute_tool(db: Session, tool_name: str, args: dict[str, Any]) -> Any:
         source_id = (args.get("source_id") or "somerville").strip().lower()
         if source_id != "somerville":
             return {"message": f"Unknown source_id: {source_id}. Only somerville is supported."}
-        path = download_somerville_citations(force=True)
-        return {"path": str(path), "source_id": source_id}
+        try:
+            path = download_somerville_citations(force=True)
+            return {"path": str(path), "source_id": source_id}
+        except Exception as e:
+            err = str(e).lower()
+            if "timeout" in err or "timed out" in err:
+                return {"error": "Download timed out (external source may be slow). Continue with remaining steps."}
+            return {"error": f"Download failed ({e}). Continue with remaining steps."}
+
+    if tool_name == "get_case_metrics":
+        cases = db.query(Case).all()
+        grouped: dict[str, list[Case]] = defaultdict(list)
+        for case in cases:
+            key = case.filing_date.strftime("%Y-%m")
+            grouped[key].append(case)
+        months_sorted = sorted(grouped.keys(), reverse=True)[:3]
+        summary_months = []
+        for month in months_sorted:
+            cs = grouped[month]
+            total = len(cs)
+            disposed = [c for c in cs if c.status in (CaseStatus.DISPOSED, CaseStatus.DISMISSED, CaseStatus.PAID)]
+            non_disposed = total - len(disposed)
+            disposed_pct = (len(disposed) / total * 100.0) if total > 0 else 0.0
+            avg_age = sum(c.case_age_days() for c in cs) / total if total > 0 else 0.0
+            summary_months.append({
+                "month": month,
+                "total_cases": total,
+                "disposed": len(disposed),
+                "non_disposed": non_disposed,
+                "disposed_pct": round(disposed_pct, 1),
+                "avg_case_age_days": round(avg_age, 1),
+            })
+        fta_count = sum(1 for c in cases if c.status == CaseStatus.FTA)
+        return {
+            "last_3_months": summary_months,
+            "fta_count": fta_count,
+        }
 
     if tool_name == "triage_tickets":
         open_tickets = (
@@ -360,6 +428,34 @@ def _execute_tool(db: Session, tool_name: str, args: dict[str, Any]) -> Any:
         except ValueError:
             rel = path
         return {"period": period, "path": str(rel)}
+
+    if tool_name == "generate_custom_query_csv":
+        entity = (args.get("entity") or "cases").strip().lower()
+        period = (args.get("period") or today.strftime("%Y-%m")).strip()
+        if entity not in ("cases", "tickets", "devices"):
+            return {"error": "Unsupported entity; use cases, tickets, or devices"}
+        ensure_report_dir(period)
+        buffer = StringIO()
+        writer = csv.writer(buffer)
+        if entity == "cases":
+            writer.writerow(["case_number", "status", "court", "filing_date", "disposition_date", "fine_amount"])
+            for c in db.query(Case).limit(500):
+                writer.writerow([c.case_number, c.status.value, c.court, c.filing_date, c.disposition_date, c.fine_amount])
+        elif entity == "tickets":
+            writer.writerow(["id", "title", "category", "priority", "status", "created_at", "due_at"])
+            for t in db.query(Ticket).limit(500):
+                writer.writerow(
+                    [t.id, t.title, t.category.value, t.priority.value, t.status.value, t.created_at, t.due_at]
+                )
+        elif entity == "devices":
+            writer.writerow(["asset_tag", "type", "location", "assigned_user", "warranty_end", "last_patch_date"])
+            for d in db.query(Device).limit(500):
+                writer.writerow(
+                    [d.asset_tag, d.type, d.location, d.assigned_user, d.warranty_end, d.last_patch_date]
+                )
+        out_path = REPORT_ROOT / period / f"{entity}_export.csv"
+        out_path.write_text(buffer.getvalue(), encoding="utf-8")
+        return {"period": period, "path": f"reports/{period}/{entity}_export.csv"}
 
     if tool_name == "create_change_request":
         required = ["title", "requested_by", "current_process", "proposed_change"]

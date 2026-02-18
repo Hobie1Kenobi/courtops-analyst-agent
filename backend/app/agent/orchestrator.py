@@ -13,10 +13,10 @@ RULES:
 - Call one tool at a time. Wait for the result before deciding the next step.
 - Be audit-friendly: your actions are logged. Prefer clear, deterministic tool use.
 - If a tool fails, report the error and continue with the next logical step when appropriate.
-- When the user asks for a "daily ops demo" or preset, follow the exact sequence: refresh public dataset, triage and resolve access tickets, SLA sweep and escalate, inventory compliance check, create patch records for out-of-compliance assets, generate monthly operations report, generate revenue at risk report, generate audit report, create a change request and generate its docs.
+- When the user asks for a "daily ops demo" or preset, follow the exact sequence: refresh public dataset, triage and resolve access tickets, SLA sweep and escalate, inventory compliance check, create patch records for out-of-compliance assets, generate monthly operations report, generate revenue at risk report, generate audit report, create a change request and generate its docs. Do not skip generate_monthly_operations_report or generate_change_request_docs. Complete all steps before giving your final summary; do not stop after escalation.
 - Return a brief final summary of what was accomplished and any artifact paths (reports/..., docs/generated/...)."""
 
-MAX_TURNS = 25
+MAX_TURNS = 45
 
 
 def run_agent(
@@ -25,6 +25,7 @@ def run_agent(
     goal: str,
     mode: str = "demo",
     dry_run: bool = True,
+    require_completion_tools: list[str] | None = None,
 ) -> dict[str, Any]:
     client = get_llm_client()
     model = get_llm_model()
@@ -54,6 +55,15 @@ def run_agent(
             ]
         messages.append(assistant_msg)
         if not getattr(msg, "tool_calls", None):
+            if require_completion_tools:
+                called = {a["tool"] for a in actions_taken}
+                missing = [t for t in require_completion_tools if t not in called]
+                if missing:
+                    messages.append({
+                        "role": "user",
+                        "content": f"You have not completed all required steps. The following tools must still be called (in order): {', '.join(missing)}. Call the next required tool now. Do not provide a final summary until all are done.",
+                    })
+                    continue
             break
 
         for tc in msg.tool_calls:

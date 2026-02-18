@@ -100,6 +100,14 @@ export default function AgentConsolePage() {
           </button>
           <button
             type="button"
+            onClick={() => handleRun("daily_ops_robust")}
+            disabled={running}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+          >
+            {running ? "Running…" : "Run daily_ops_robust preset"}
+          </button>
+          <button
+            type="button"
             onClick={() => handleRun()}
             disabled={running}
             className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"

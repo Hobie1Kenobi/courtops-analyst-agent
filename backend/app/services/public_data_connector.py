@@ -39,7 +39,7 @@ def download_somerville_citations(force: bool = False) -> Path:
     if data_path.exists() and not force:
         return data_path
 
-    with httpx.stream("GET", SOMERVILLE_CITATIONS_URL, timeout=60.0) as resp:
+    with httpx.stream("GET", SOMERVILLE_CITATIONS_URL, timeout=120.0) as resp:
         resp.raise_for_status()
         with data_path.open("wb") as f:
             for chunk in resp.iter_bytes():
