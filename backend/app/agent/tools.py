@@ -219,6 +219,9 @@ def run_tool(
 
     try:
         result = _execute_tool(db, tool_name, arguments)
+        if isinstance(result, dict) and "error" in result and result.get("success") is not True:
+            log_agent_tool(db, user_id, tool_name, arguments, f"error: {result['error']}")
+            return {"success": False, "error": result["error"]}
         summary = str(result)[:500]
         log_agent_tool(db, user_id, tool_name, arguments, summary)
         return {"success": True, "result": result}
@@ -359,6 +362,10 @@ def _execute_tool(db: Session, tool_name: str, args: dict[str, Any]) -> Any:
         return {"period": period, "path": str(rel)}
 
     if tool_name == "create_change_request":
+        required = ["title", "requested_by", "current_process", "proposed_change"]
+        missing = [k for k in required if not args.get(k)]
+        if missing:
+            return {"error": f"Missing required field(s): {', '.join(missing)}"}
         cr = ChangeRequest(
             title=args["title"],
             requested_by=args["requested_by"],
