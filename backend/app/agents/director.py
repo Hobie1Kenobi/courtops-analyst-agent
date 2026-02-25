@@ -47,7 +47,7 @@ class ShiftDirector:
             queues = pending_count_by_queue(db)
             total_pending = sum(queues.values())
             dispatches = self._dispatch_count.get(current_phase, 0)
-            if total_pending == 0 and dispatches < 4:
+            if total_pending <= 2 and dispatches < 15:
                 wo_ids = generate_phase_work_orders(db, current_phase)
                 self._dispatch_count[current_phase] = dispatches + 1
                 publish_ops_event(

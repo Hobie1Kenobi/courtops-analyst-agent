@@ -37,6 +37,14 @@ def publish_ops_event(
         "artifact": artifact,
     }
 
+    from app.sim.logger import log_ops_event
+    log_ops_event(
+        agent=agent, action=action,
+        work_order_id=work_order_id, status=status,
+        kpis=kpis, artifact=artifact,
+        phase=clock_state["phase"], sim_time=clock_state["sim_time"],
+    )
+
     if db is not None:
         try:
             ev = OpsEvent(
