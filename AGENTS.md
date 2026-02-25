@@ -41,15 +41,30 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 npm run dev
 - The `POST /tickets/` endpoint has a pre-existing bug where `created_at` is None for new tickets (the model doesn't set a default). This does not affect listing or other endpoints.
 - ESLint requires a `.eslintrc.json` config file in `frontend/` to avoid interactive prompts from `next lint`. If missing, create it with `{"extends": "next/core-web-vitals"}`.
 
+### Municipal Shift Simulation
+
+One-command demo: `./scripts/cloud_shift_demo.sh [SEED] [SPEED]`
+
+- Seeds DB with Corpus Christi profile, starts backend+frontend, launches sim at given speed.
+- Open `http://localhost:3000/ops?tour=1` for auto-guided recording.
+- Sim uses in-process background threads (no Celery required for the demo).
+- Agents: ShiftDirector + ClerkITHybrid + ITFunctional + FinanceAudit.
+- `POST /admin/seed?reset=true` wipes and re-seeds; deterministic with same seed value.
+- `POST /admin/sim/start?speed=60` starts the clock + agent threads.
+- SSE stream at `GET /ops/stream` powers the live Ops Console.
+- `GET /cases/summary` is the no-auth endpoint for cases (limited fields).
+- `pyyaml` was added to `requirements.txt` for YAML profile/scenario parsing.
+
 ### Testing
 
 - **Backend tests**: `cd backend && source venv/bin/activate && POSTGRES_HOST=localhost REDIS_URL=redis://localhost:6379/0 pytest tests/ -v`
 - **Frontend lint**: `cd frontend && npx next lint`
-- Backend tests are pure unit tests (no DB required) covering SLA calculation, audit anomalies, and case time-to-disposition.
+- 10 tests total: SLA calc, audit anomalies, case TTD, seed determinism, work order dispatch (4 tests), SSE events.
+- Seed determinism test requires a live PostgreSQL connection.
 
 ### Celery workers (optional)
 
-Only needed for background agent tasks. Not required for basic API/UI testing.
+Only needed for scheduled background tasks (daily/weekly/monthly). The sim uses in-process threads instead.
 
 ```bash
 cd backend && source venv/bin/activate
