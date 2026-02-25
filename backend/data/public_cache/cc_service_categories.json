@@ -1,0 +1,42 @@
+[
+  {
+    "category": "Streets & Traffic",
+    "weight": 0.22
+  },
+  {
+    "category": "Water / Wastewater",
+    "weight": 0.18
+  },
+  {
+    "category": "Code Enforcement",
+    "weight": 0.15
+  },
+  {
+    "category": "Parks & Recreation",
+    "weight": 0.08
+  },
+  {
+    "category": "Solid Waste",
+    "weight": 0.12
+  },
+  {
+    "category": "Animal Control",
+    "weight": 0.07
+  },
+  {
+    "category": "Drainage / Storm Water",
+    "weight": 0.06
+  },
+  {
+    "category": "Building Permits",
+    "weight": 0.05
+  },
+  {
+    "category": "General Information",
+    "weight": 0.04
+  },
+  {
+    "category": "Police Non-Emergency",
+    "weight": 0.03
+  }
+]
