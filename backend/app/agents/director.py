@@ -15,6 +15,7 @@ class ShiftDirector:
     def __init__(self):
         self._last_phase = None
         self._phases_generated: set[str] = set()
+        self._dispatch_count: dict[str, int] = {}
 
     def tick(self):
         if not sim_clock.running:
@@ -27,7 +28,9 @@ class ShiftDirector:
         try:
             if current_phase not in self._phases_generated:
                 self._phases_generated.add(current_phase)
+                self._dispatch_count[current_phase] = 0
                 wo_ids = generate_phase_work_orders(db, current_phase)
+                self._dispatch_count[current_phase] += 1
                 kpis = get_kpis(db)
                 publish_ops_event(
                     db, agent=self.name,
@@ -41,11 +44,22 @@ class ShiftDirector:
                     status="ok",
                 )
 
+            queues = pending_count_by_queue(db)
+            total_pending = sum(queues.values())
+            dispatches = self._dispatch_count.get(current_phase, 0)
+            if total_pending == 0 and dispatches < 4:
+                wo_ids = generate_phase_work_orders(db, current_phase)
+                self._dispatch_count[current_phase] = dispatches + 1
+                publish_ops_event(
+                    db, agent=self.name,
+                    action=f"redispatch:{len(wo_ids)}_work_orders",
+                    status="ok",
+                )
+
             if self._last_phase != current_phase:
                 self._last_phase = current_phase
 
             kpis = get_kpis(db)
-            queues = pending_count_by_queue(db)
             publish_ops_event(
                 db, agent=self.name,
                 action="kpi_update",
@@ -58,3 +72,4 @@ class ShiftDirector:
     def reset(self):
         self._last_phase = None
         self._phases_generated.clear()
+        self._dispatch_count.clear()

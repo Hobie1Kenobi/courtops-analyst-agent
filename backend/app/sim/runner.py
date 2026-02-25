@@ -39,17 +39,18 @@ def _run_all_agents():
             continue
 
         director.tick()
-        time.sleep(0.5)
+        time.sleep(0.3)
 
-        if cycle % 2 == 0:
-            clerk.tick()
-        if cycle % 2 == 1:
-            it_func.tick()
-        if cycle % 3 == 0:
-            finance.tick()
+        clerk.tick()
+        time.sleep(0.3)
+
+        it_func.tick()
+        time.sleep(0.3)
+
+        finance.tick()
 
         cycle += 1
-        time.sleep(2)
+        time.sleep(1.5)
 
 
 def start_sim_runner():
