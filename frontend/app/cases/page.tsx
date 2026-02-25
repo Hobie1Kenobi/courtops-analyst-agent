@@ -46,9 +46,30 @@ export default function CasesPage() {
     apiFetch<CaseRow[]>("/cases/")
       .then(setCases)
       .catch(() => {
-        setCasesError(
-          "Could not load cases list. Ensure backend is running and you are logged in."
-        );
+        const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+        fetch(`${baseUrl}/cases/summary`)
+          .then((r) => r.json())
+          .then((summary: any[]) => {
+            setCases(
+              summary.map((s: any, i: number) => ({
+                id: i,
+                case_number: s.case_number,
+                defendant_name: "-",
+                charge_type: s.charge_type,
+                status: s.status,
+                filing_date: s.filing_date,
+                fine_amount: 0,
+                amount_paid: 0,
+                outstanding_balance: null,
+                days_overdue: null,
+              }))
+            );
+          })
+          .catch(() => {
+            setCasesError(
+              "Could not load cases list. Ensure backend is running and you are logged in."
+            );
+          });
       });
   }, []);
 
