@@ -15,12 +15,16 @@
     "jsx": "preserve",
     "incremental": true,
     "paths": {
-      "@/*": ["./frontend/*"]
+      "@/*": ["./*"]
     },
     "plugins": [{ "name": "next" }]
   },
   "include": [
     "next-env.d.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
     "frontend/**/*.ts",
     "frontend/**/*.tsx",
     ".next/types/**/*.ts"
