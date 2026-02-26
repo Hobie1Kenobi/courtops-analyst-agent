@@ -6,6 +6,7 @@ from app.api.routes import agent, auth, tickets, cases, inventory, patches, chan
 from app.api.routes.admin import router as admin_router
 from app.ops.routes import router as ops_router
 from app.work_orders.routes import router as work_orders_router
+from app.training.routes import router as training_router
 
 
 def create_app() -> FastAPI:
@@ -37,6 +38,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_router)
     app.include_router(ops_router)
     app.include_router(work_orders_router)
+    app.include_router(training_router)
 
     @app.get("/health", tags=["system"])
     def health() -> dict[str, str]:
