@@ -60,6 +60,12 @@ export default function RootLayout({
                 <Link href="/ops" className="rounded-md bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-800 hover:bg-indigo-200">
                   Ops Console
                 </Link>
+                <Link href="/training-ops" className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-200">
+                  Training
+                </Link>
+                <Link href="/labs" className="rounded-md bg-teal-100 px-2 py-1 text-xs font-semibold text-teal-800 hover:bg-teal-200">
+                  Labs
+                </Link>
                 <Link
                   href="/login"
                   className="rounded-md border border-slate-200 px-2 py-1 text-xs hover:border-primary hover:text-primary"

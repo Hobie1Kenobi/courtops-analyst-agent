@@ -146,8 +146,15 @@ def _run_training_loop(scenario_key: str, speed: float):
 def start_training(scenario_key: str, speed: float = 5.0):
     global _thread
     _stop.clear()
+    if _thread is not None and _thread.is_alive():
+        _stop.set()
+        _thread.join(timeout=3)
+    _stop.clear()
     db = SessionLocal()
     try:
+        db.query(TrainingTask).delete()
+        db.query(SkillProgress).delete()
+        db.commit()
         seed_scenario(scenario_key, db)
     finally:
         db.close()
