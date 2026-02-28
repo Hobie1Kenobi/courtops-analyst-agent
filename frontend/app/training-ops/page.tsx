@@ -58,6 +58,7 @@ export default function TrainingOpsPage() {
   const [scenarios, setScenarios] = useState<Record<string, any>>({});
   const [running, setRunning] = useState(false);
   const [events, setEvents] = useState<any[]>([]);
+  const [toolSteps, setToolSteps] = useState<any[]>([]);
   const feedRef = useRef<HTMLDivElement>(null);
 
   const fetchAll = useCallback(async () => {
@@ -96,6 +97,13 @@ export default function TrainingOpsPage() {
     await fetch(`${API}/training/scenarios/${key}/start?speed=5`, { method: "POST" });
     setRunning(true);
     fetchAll();
+    try {
+      const res = await fetch(`${API}/enterprise/execute/${key}`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        setToolSteps(data.steps || []);
+      }
+    } catch {}
   };
 
   const handleStop = async () => {
@@ -198,6 +206,7 @@ export default function TrainingOpsPage() {
           <div className="flex gap-1 flex-wrap">
             {[
               { key: "teach", label: "Teach Me", icon: "📖" },
+              { key: "toolview", label: "Tool View", icon: "🖥️" },
               { key: "technical", label: "Technical Detail", icon: "⚙️" },
               { key: "sql", label: "Show SQL / Config", icon: "💾" },
               { key: "why", label: "Ask Why", icon: "❓" },
@@ -239,6 +248,43 @@ export default function TrainingOpsPage() {
                     {selectedTask.evidence_reviewed && <div><h4 className="font-semibold text-slate-700">Evidence Reviewed</h4><p className="text-slate-600 mt-1 whitespace-pre-wrap">{selectedTask.evidence_reviewed}</p></div>}
                     {selectedTask.decision_made && <div><h4 className="font-semibold text-slate-700">Decision Made</h4><p className="text-slate-600 mt-1">{selectedTask.decision_made}</p></div>}
                     {selectedTask.mentor_explanation && <div className="rounded bg-indigo-50 border border-indigo-200 p-3"><h4 className="font-semibold text-indigo-800">🎓 Mentor Explanation</h4><p className="text-indigo-700 mt-1">{selectedTask.mentor_explanation}</p></div>}
+                  </div>
+                )}
+
+                {activePanel === "toolview" && (
+                  <div className="space-y-3 text-xs">
+                    <h4 className="font-semibold text-slate-700">🖥️ Live Tool Interaction — Agent Steps</h4>
+                    {toolSteps.length === 0 ? (
+                      <p className="text-slate-400 italic">Start an enterprise scenario to see live tool interactions. The agent will open the simulated tool, run queries, apply fixes, and verify.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {toolSteps.map((step: any, i: number) => (
+                          <div key={i} className="rounded border bg-slate-50 p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="rounded-full bg-indigo-600 text-white text-[9px] font-bold w-5 h-5 flex items-center justify-center">{step.step}</span>
+                              <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[9px] font-mono">{step.tool}</span>
+                              <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[9px] text-blue-800">{step.panel}</span>
+                            </div>
+                            <p className="font-medium text-slate-800">{step.action}</p>
+                            {step.sql && (
+                              <pre className="mt-2 rounded bg-slate-900 text-green-400 p-2 overflow-x-auto text-[10px] whitespace-pre-wrap">{step.sql}</pre>
+                            )}
+                            {step.result && (
+                              <div className="mt-2 rounded bg-white border p-2">
+                                <span className="text-[9px] font-semibold text-slate-500">Result:</span>
+                                <pre className="text-[10px] text-slate-700 whitespace-pre-wrap mt-1">{typeof step.result === "string" ? step.result : JSON.stringify(step.result, null, 2)}</pre>
+                              </div>
+                            )}
+                            {step.observation && (
+                              <div className="mt-2 rounded bg-amber-50 border border-amber-200 p-2">
+                                <span className="text-[9px] font-semibold text-amber-800">💡 Analyst Observation:</span>
+                                <p className="text-amber-700 mt-0.5">{step.observation}</p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.enterprise.models import *
 from app.enterprise.seed import seed_enterprise
+from app.enterprise.actions import execute_scenario_actions
 
 router = APIRouter(prefix="/enterprise", tags=["enterprise"])
 
@@ -180,3 +181,11 @@ def ebuilder_stats(db: Session = Depends(get_db)):
     return {"total_projects": len(projects), "total_budget": round(total_budget, 2),
             "total_spent": round(total_actual, 2), "behind_schedule": behind,
             "document_sync_errors": doc_errors, "open_rfis": open_rfis}
+
+
+# ── Execute Scenario Actions (live DB interaction) ──
+@router.post("/execute/{scenario_key}")
+def execute_actions(scenario_key: str, db: Session = Depends(get_db)):
+    """Execute the live DB actions for a scenario — returns step-by-step tool interaction results."""
+    steps = execute_scenario_actions(db, scenario_key)
+    return {"scenario": scenario_key, "steps": steps, "total_steps": len(steps)}
