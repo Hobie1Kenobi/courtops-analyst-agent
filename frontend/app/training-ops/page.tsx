@@ -122,13 +122,23 @@ export default function TrainingOpsPage() {
             <h2 className="text-lg font-bold text-emerald-900">Municipal Applications Analyst — Training Twin</h2>
             <p className="text-xs text-emerald-700">Interactive learning console · Enterprise IT analyst workflow simulation</p>
           </div>
-          <div className="flex items-center gap-2">
-            {Object.entries(scenarios).map(([key, sc]: [string, any]) => (
-              <button key={key} onClick={() => handleSeedAndStart(key)} className="rounded bg-emerald-600 px-2 py-1 text-xs text-white hover:bg-emerald-700">
-                ▶ {sc.name}
-              </button>
-            ))}
-            <button onClick={handleStop} className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700">Stop</button>
+          <div className="flex items-center gap-1 flex-wrap">
+            {Object.entries(scenarios).map(([key, sc]: [string, any]) => {
+              const sys = sc.system || "general";
+              const colors: Record<string, string> = {
+                general: "bg-emerald-600 hover:bg-emerald-700",
+                maximo: "bg-blue-600 hover:bg-blue-700",
+                incode: "bg-purple-600 hover:bg-purple-700",
+                ebuilder: "bg-orange-600 hover:bg-orange-700",
+              };
+              const icons: Record<string, string> = { general: "▶", maximo: "⚙️", incode: "⚖️", ebuilder: "🏗️" };
+              return (
+                <button key={key} onClick={() => handleSeedAndStart(key)} className={`rounded px-2 py-1 text-[9px] text-white ${colors[sys] || colors.general}`} title={sc.description}>
+                  {icons[sys] || "▶"} {sc.name?.length > 30 ? sc.name.slice(0, 30) + "…" : sc.name}
+                </button>
+              );
+            })}
+            <button onClick={handleStop} className="rounded bg-red-600 px-2 py-1 text-[9px] text-white hover:bg-red-700">Stop</button>
           </div>
         </div>
       </div>

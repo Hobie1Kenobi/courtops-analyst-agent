@@ -14,6 +14,8 @@ from app.training.agents.engine import (
     start_training, stop_training,
 )
 from app.training.content.scenarios import SCENARIOS as SCENARIO_DATA, LABS as LAB_DATA
+from app.training.content.enterprise_scenarios import ENTERPRISE_SCENARIOS
+ALL_SCENARIO_DATA = {**SCENARIO_DATA, **ENTERPRISE_SCENARIOS}
 
 router = APIRouter(prefix="/training", tags=["training"])
 
@@ -56,7 +58,7 @@ class SkillRead(BaseModel):
 
 @router.get("/scenarios")
 def list_scenarios():
-    return {k: {"name": v["name"], "description": v["description"], "task_count": len(v["tasks"])} for k, v in SCENARIO_DATA.items()}
+    return {k: {"name": v["name"], "description": v["description"], "system": v.get("system", "general"), "task_count": len(v["tasks"])} for k, v in ALL_SCENARIO_DATA.items()}
 
 
 @router.post("/scenarios/{scenario_key}/seed")

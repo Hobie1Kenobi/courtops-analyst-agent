@@ -8,6 +8,7 @@ from datetime import datetime
 from app.db.session import SessionLocal
 from app.training.models import TrainingTask, TaskStatus, SkillDomain, SkillProgress
 from app.training.content.scenarios import SCENARIOS
+from app.training.content.enterprise_scenarios import ENTERPRISE_SCENARIOS
 from app.ops.stream import publish_ops_event
 from app.sim.clock import sim_clock
 
@@ -33,13 +34,16 @@ _thread = None
 _stop = threading.Event()
 
 
+ALL_SCENARIOS = {**SCENARIOS, **ENTERPRISE_SCENARIOS}
+
+
 def seed_scenario(scenario_key: str, db=None):
     close = False
     if db is None:
         db = SessionLocal()
         close = True
     try:
-        scenario = SCENARIOS.get(scenario_key)
+        scenario = ALL_SCENARIOS.get(scenario_key)
         if not scenario:
             return {"error": f"Unknown scenario: {scenario_key}"}
 
