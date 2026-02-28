@@ -1,0 +1,53 @@
+graph TB
+    subgraph Browser["Browser"]
+        FE["Next.js 14 Frontend<br/>:3000<br/>React + Tailwind + SSE"]
+    end
+
+    subgraph Backend["Backend Services"]
+        API["FastAPI API Server<br/>:8000<br/>Uvicorn + Hot Reload"]
+        SimClock["Sim Clock<br/>Phase Manager"]
+        Director["Shift Director<br/>Agent Thread"]
+        ClerkAgent["Clerk+IT Hybrid<br/>Agent Thread"]
+        ITAgent["IT Functional<br/>Agent Thread"]
+        FinAgent["Finance & Audit<br/>Agent Thread"]
+        SSE["SSE Stream<br/>/ops/stream"]
+    end
+
+    subgraph Data["Data Layer"]
+        PG[("PostgreSQL 15<br/>:5432<br/>Cases, Tickets, Devices,<br/>Work Orders, Ops Events")]
+        RD[("Redis 7<br/>:6379<br/>Celery Broker")]
+    end
+
+    subgraph Artifacts["Generated Artifacts"]
+        PDF["PDF Reports<br/>Revenue-at-Risk<br/>Monthly Ops"]
+        CSV["CSV Exports"]
+        AuditTxt["Audit Reports"]
+    end
+
+    FE -->|REST API + JWT| API
+    FE -->|Server-Sent Events| SSE
+    API --> PG
+    API --> RD
+    SimClock --> Director
+    Director --> ClerkAgent
+    Director --> ITAgent
+    Director --> FinAgent
+    ClerkAgent --> PG
+    ITAgent --> PG
+    FinAgent --> PG
+    FinAgent --> PDF
+    FinAgent --> CSV
+    FinAgent --> AuditTxt
+    ClerkAgent --> SSE
+    ITAgent --> SSE
+    FinAgent --> SSE
+    Director --> SSE
+
+    style FE fill:#dbeafe,stroke:#2563eb
+    style API fill:#dcfce7,stroke:#16a34a
+    style PG fill:#fef3c7,stroke:#d97706
+    style RD fill:#fee2e2,stroke:#dc2626
+    style Director fill:#e9d5ff,stroke:#7c3aed
+    style ClerkAgent fill:#dbeafe,stroke:#2563eb
+    style ITAgent fill:#dcfce7,stroke:#16a34a
+    style FinAgent fill:#fef9c3,stroke:#ca8a04

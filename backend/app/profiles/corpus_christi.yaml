@@ -1,0 +1,44 @@
+profile: corpus_christi
+display_name: "Corpus Christi (Public Data Mode)"
+municipality: "City of Corpus Christi, TX"
+court: "Corpus Christi Municipal Court"
+data_sources:
+  - type: arcgis_open_data
+    connector: corpus_christi_arcgis
+    description: "Public service request categories and distributions"
+  - type: synthetic_311
+    connector: corpus_christi_311
+    description: "Synthetic 311 records shaped by public city service pages"
+  - type: finance_metadata
+    connector: corpus_christi_finance_docs
+    description: "Public finance report titles and compliance terminology"
+
+courtrooms: ["A", "B", "C"]
+judges: ["Judge Hernandez", "Judge Mitchell", "Judge Trevino"]
+clerks: ["Clerk Salazar", "Clerk Kim", "Clerk Vasquez"]
+device_locations:
+  - "Municipal Court Clerk Window"
+  - "Courtroom A"
+  - "Courtroom B"
+  - "Courtroom C"
+  - "Records Room"
+  - "IT Server Closet"
+  - "Front Desk Kiosk"
+
+charge_types:
+  traffic:
+    - "Speeding > 10 mph"
+    - "Speeding > 20 mph"
+    - "Expired Registration"
+    - "No Proof of Insurance"
+    - "Failure to Signal"
+    - "Running Red Light"
+  code_enforcement:
+    - "City Ordinance Violation (Code Enforcement)"
+    - "Zoning Violation"
+  parking:
+    - "Parking Violation"
+    - "Handicap Parking Violation"
+
+watermark: "Public Data Mode – Synthetic Records – For Demonstration Only"
+branding: "Liberty ChainGuard Consulting"

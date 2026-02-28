@@ -3,6 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.session import Base, engine
 from app.api.routes import agent, auth, tickets, cases, inventory, patches, change_requests, reports
+from app.api.routes.admin import router as admin_router
+from app.ops.routes import router as ops_router
+from app.work_orders.routes import router as work_orders_router
+from app.training.routes import router as training_router
+from app.enterprise.routes import router as enterprise_router
 
 
 def create_app() -> FastAPI:
@@ -10,7 +15,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="CourtOps Analyst Agent API",
-        version="0.1.0",
+        version="0.2.0",
         docs_url="/docs",
         redoc_url="/redoc",
     )
@@ -31,6 +36,11 @@ def create_app() -> FastAPI:
     app.include_router(change_requests.router)
     app.include_router(reports.router)
     app.include_router(agent.router)
+    app.include_router(admin_router)
+    app.include_router(ops_router)
+    app.include_router(work_orders_router)
+    app.include_router(training_router)
+    app.include_router(enterprise_router)
 
     @app.get("/health", tags=["system"])
     def health() -> dict[str, str]:
