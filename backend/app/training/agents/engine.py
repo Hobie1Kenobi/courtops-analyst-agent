@@ -9,6 +9,7 @@ from app.db.session import SessionLocal
 from app.training.models import TrainingTask, TaskStatus, SkillDomain, SkillProgress
 from app.training.content.scenarios import SCENARIOS
 from app.training.content.enterprise_scenarios import ENTERPRISE_SCENARIOS
+from app.training.content.enterprise_scenarios_ext import ENTERPRISE_SCENARIOS_EXT
 from app.ops.stream import publish_ops_event
 from app.sim.clock import sim_clock
 
@@ -34,7 +35,7 @@ _thread = None
 _stop = threading.Event()
 
 
-ALL_SCENARIOS = {**SCENARIOS, **ENTERPRISE_SCENARIOS}
+ALL_SCENARIOS = {**SCENARIOS, **ENTERPRISE_SCENARIOS, **ENTERPRISE_SCENARIOS_EXT}
 
 
 def seed_scenario(scenario_key: str, db=None):

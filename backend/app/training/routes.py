@@ -16,8 +16,10 @@ from app.training.agents.engine import (
 from app.training.content.scenarios import SCENARIOS as SCENARIO_DATA, LABS as LAB_DATA
 from app.training.content.enterprise_scenarios import ENTERPRISE_SCENARIOS
 from app.training.content.enterprise_labs import ENTERPRISE_LABS
-ALL_SCENARIO_DATA = {**SCENARIO_DATA, **ENTERPRISE_SCENARIOS}
-ALL_LAB_DATA = {**LAB_DATA, **ENTERPRISE_LABS}
+from app.training.content.enterprise_scenarios_ext import ENTERPRISE_SCENARIOS_EXT
+from app.training.content.advanced_labs import ADVANCED_LABS
+ALL_SCENARIO_DATA = {**SCENARIO_DATA, **ENTERPRISE_SCENARIOS, **ENTERPRISE_SCENARIOS_EXT}
+ALL_LAB_DATA = {**LAB_DATA, **ENTERPRISE_LABS, **ADVANCED_LABS}
 
 router = APIRouter(prefix="/training", tags=["training"])
 
