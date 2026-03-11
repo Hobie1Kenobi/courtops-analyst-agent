@@ -46,3 +46,21 @@ def list_agents():
 def manual_agent_turn(agent_name: str, context: str = Query(default="Check all systems for issues.")):
     result = run_agent_turn(agent_name, context)
     return result
+
+
+@router.get("/lab-status")
+def lab_status():
+    from app.autonomous.lab_tools import check_lab_services
+    return check_lab_services()
+
+
+@router.post("/sql")
+def run_sql(query: str = Query(...), description: str = Query(default="")):
+    from app.autonomous.lab_tools import run_sql_query
+    return run_sql_query(query=query, description=description)
+
+
+@router.get("/schema")
+def get_schema():
+    from app.autonomous.lab_tools import get_database_schema
+    return get_database_schema()

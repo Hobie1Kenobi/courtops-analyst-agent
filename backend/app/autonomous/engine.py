@@ -12,6 +12,7 @@ from datetime import datetime
 from typing import Optional
 
 from app.autonomous.tools import get_openai_tools, execute_tool, TOOL_REGISTRY
+import app.autonomous.lab_tools  # noqa: F401  — registers lab tools on import
 from app.autonomous.prompts import (
     SHIFT_DIRECTOR_PROMPT, CLERK_IT_PROMPT,
     IT_FUNCTIONAL_PROMPT, FINANCE_AUDIT_PROMPT,
