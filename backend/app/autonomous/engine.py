@@ -54,10 +54,11 @@ def _call_llm(system_prompt: str, user_message: str, tools: list[dict]) -> dict:
             json={
                 "model": settings.ollama_model,
                 "messages": messages,
-                "tools": tools if tools else None,
-                "temperature": 0.3,
+                "tools": tools[:6] if tools else None,
+                "temperature": 0.1,
+                "max_tokens": 200,
             },
-            timeout=120,
+            timeout=90,
         )
         if resp.status_code == 200:
             data = resp.json()
