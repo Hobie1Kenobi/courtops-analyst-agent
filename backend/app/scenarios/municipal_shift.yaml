@@ -1,0 +1,69 @@
+scenario: municipal_shift
+display_name: "Municipal Shift Simulation"
+description: >
+  Full-day compressed shift simulation with 3 phases covering
+  morning intake, midday IT operations, and end-of-day audit/finance.
+
+phases:
+  - name: morning_intake
+    weight: 0.35
+    emphasis: clerk_ops
+    work_order_types:
+      - ticket_access_resolution
+      - case_disposition_metrics
+      - change_request_draft
+      - sla_sweep_escalation
+
+  - name: midday_it_ops
+    weight: 0.35
+    emphasis: it_ops
+    work_order_types:
+      - sla_sweep_escalation
+      - inventory_compliance_check
+      - patch_record_create
+      - ticket_access_resolution
+
+  - name: endofday_monthend_audit
+    weight: 0.30
+    emphasis: finance_audit
+    work_order_types:
+      - revenue_at_risk_fta
+      - monthly_ops_package
+      - audit_log_scan
+      - change_request_draft
+
+seed_data:
+  users: 5
+  cases: 500
+  tickets: 120
+  devices: 50
+  patches: 25
+  change_requests: 3
+
+injected_events:
+  - type: after_hours_export
+    description: "Audit anomaly: off-hours report export by a clerk"
+    phase: endofday_monthend_audit
+  - type: role_mismatch
+    description: "Read-only user attempted to modify a case"
+    phase: morning_intake
+  - type: patch_overdue
+    description: "Critical device patch exceeded 30-day SLA"
+    phase: midday_it_ops
+  - type: high_value_delinquency
+    description: "FTA cluster with >$5000 aggregate outstanding"
+    phase: endofday_monthend_audit
+
+agents:
+  - name: shift_director
+    queue: director
+    role: "Monitors KPIs, dispatches work orders, triggers month-end close"
+  - name: clerk_it_hybrid
+    queue: clerk_ops
+    role: "Handles tickets, access issues, case metrics, change requests"
+  - name: it_functional_analyst
+    queue: it_ops
+    role: "SLA sweeps, inventory compliance, patch management"
+  - name: finance_audit_analyst
+    queue: finance_audit
+    role: "Revenue analysis, monthly reporting, audit scans"

@@ -124,6 +124,51 @@ Top-level layout:
     - Save reports to `reports/YYYY-MM/`
     - Expose report links through the Reports UI.
 
+## Municipal Shift Simulation (Corpus Christi Public Data Mode)
+
+A recording-ready, compressed-shift simulation that runs 3 specialist agents
+concurrently under a Shift Director. Uses only public Corpus Christi (TX) data
+sources with synthetic operational records (no real PII).
+
+### One-Command Demo
+
+```bash
+./scripts/cloud_shift_demo.sh [SEED] [SPEED]
+# Example: ./scripts/cloud_shift_demo.sh 20260225 60
+```
+
+Open `http://localhost:3000/ops?tour=1` for the auto-guided Ops Console.
+
+### What It Does
+
+- **3 phases**: Morning Intake → Midday IT Ops → End-of-Day Audit
+- **4 agents**: Shift Director + Clerk/IT Hybrid + IT Functional + Finance/Audit
+- **Live SSE feed** at `/ops/stream` powering the Ops Console
+- **Deterministic seeding**: same seed → same KPI totals
+- **Artifacts**: Revenue-at-Risk PDF, Monthly Ops Package, Audit Report
+- **Watermark**: "Public Data Mode – Synthetic Records – For Demonstration Only"
+
+### Key Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /admin/seed` | Seed database (profile, scenario, seed) |
+| `POST /admin/sim/start` | Start simulation (speed param) |
+| `POST /admin/sim/stop` | Stop simulation |
+| `GET /ops/dashboard` | KPIs + clock + queue status |
+| `GET /ops/stream` | SSE event stream |
+| `GET /cases/summary` | Public case summary (no auth) |
+| `GET /work-orders/` | Work order listing |
+| `GET /work-orders/kpis` | KPI snapshot |
+
+### Data Sources (Public Only)
+
+- Corpus Christi ArcGIS Open Data (service request categories)
+- Synthetic 311 records shaped by public city service pages
+- Public finance metadata (report titles, compliance terminology)
+
+---
+
 ## Running Locally (Quick Start)
 
 Prerequisites:

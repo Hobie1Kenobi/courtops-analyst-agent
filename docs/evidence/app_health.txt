@@ -1,0 +1,33 @@
+=== /health ===
+{"status":"ok"}
+
+=== /ops/clock ===
+{"running":true,"speed":6.0,"sim_time":"2026-02-28T08:55:03.835090","progress":1.0,"phase":"endofday_monthend_audit","shift_complete":true}
+
+=== /work-orders/kpis ===
+{"open_tickets":25,"overdue_slas":52,"devices_flagged":34,"fta_cases":152,"revenue_at_risk":62725.0,"patches_created":325,"work_orders_completed":1020}
+
+=== /cases/summary (first 3) ===
+[
+  {
+    "case_number": "E004252",
+    "charge_type": "Speeding > 20 mph",
+    "status": "deferred",
+    "filing_date": "2026-02-25",
+    "disposition_age_bucket": "0-30 days"
+  },
+  {
+    "case_number": "C004413",
+    "charge_type": "City Ordinance Violation (Code Enforcement)",
+    "status": "fta",
+    "filing_date": "2026-02-24",
+    "disposition_age_bucket": "0-30 days"
+  },
+  {
+    "case_number": "C004475",
+    "charge_type": "Zoning Violation",
+    "status": "open",
+    "filing_date": "2026-02-23",
+    "disposition_age_bucket": "0-30 days"
+  }
+]

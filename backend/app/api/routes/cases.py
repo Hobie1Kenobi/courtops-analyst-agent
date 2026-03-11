@@ -1,8 +1,9 @@
 from collections import defaultdict
 from datetime import date
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -12,6 +13,39 @@ from app.schemas.cases import CaseMetrics, CaseRead
 
 
 router = APIRouter(prefix="/cases", tags=["cases"])
+
+
+class CaseSummary(BaseModel):
+    case_number: str
+    charge_type: str
+    status: str
+    filing_date: str
+    disposition_age_bucket: str
+
+
+@router.get("/summary", response_model=List[CaseSummary])
+def cases_summary(db: Session = Depends(get_db)):
+    """Public read-only summary of cases with limited fields (no auth required)."""
+    cases = db.query(Case).order_by(Case.filing_date.desc()).limit(200).all()
+    result = []
+    for c in cases:
+        age = c.case_age_days()
+        if age < 30:
+            bucket = "0-30 days"
+        elif age < 90:
+            bucket = "30-90 days"
+        elif age < 180:
+            bucket = "90-180 days"
+        else:
+            bucket = "180+ days"
+        result.append(CaseSummary(
+            case_number=c.case_number,
+            charge_type=c.charge_type,
+            status=c.status.value,
+            filing_date=c.filing_date.isoformat(),
+            disposition_age_bucket=bucket,
+        ))
+    return result
 
 
 @router.get("/", response_model=List[CaseRead])
