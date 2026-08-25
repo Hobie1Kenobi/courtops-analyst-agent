@@ -3,9 +3,7 @@ module.exports = {
   darkMode: ["class"],
   content: [
     "./app/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./frontend/app/**/*.{ts,tsx}",
-    "./frontend/components/**/*.{ts,tsx}"
+    "./components/**/*.{ts,tsx}"
   ],
   theme: {
     extend: {
@@ -63,6 +61,9 @@ module.exports = {
         sidebar: "256px",
       },
       minWidth: {
+        sidebar: "256px",
+      },
+      padding: {
         sidebar: "256px",
       },
     }
