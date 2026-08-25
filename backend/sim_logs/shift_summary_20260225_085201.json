@@ -1,0 +1,72 @@
+{
+  "events_total": 4551,
+  "by_agent": {
+    "system": 2,
+    "shift_director": 2509,
+    "clerk_it_hybrid": 690,
+    "it_functional_analyst": 900,
+    "finance_audit_analyst": 450
+  },
+  "by_action": {
+    "log_started": 1,
+    "phase_start:morning_intake": 1,
+    "dispatched:21_work_orders": 1,
+    "kpi_update": 2460,
+    "started:ticket_access_resolution": 195,
+    "completed:ticket_access_resolution": 195,
+    "started:sla_sweep_escalation": 195,
+    "completed:sla_sweep_escalation": 195,
+    "started:patch_record_create": 150,
+    "completed:patch_record_create": 150,
+    "started:inventory_compliance_check": 105,
+    "completed:inventory_compliance_check": 105,
+    "started:case_disposition_metrics": 75,
+    "completed:case_disposition_metrics": 75,
+    "redispatch:21_work_orders": 14,
+    "started:change_request_draft": 75,
+    "completed:change_request_draft": 75,
+    "phase_start:midday_it_ops": 1,
+    "dispatched:27_work_orders": 1,
+    "redispatch:27_work_orders": 14,
+    "phase_start:endofday_monthend_audit": 1,
+    "dispatched:20_work_orders": 1,
+    "started:revenue_at_risk_fta": 75,
+    "completed:revenue_at_risk_fta": 75,
+    "started:monthly_ops_package": 45,
+    "completed:monthly_ops_package": 45,
+    "started:audit_log_scan": 105,
+    "completed:audit_log_scan": 105,
+    "redispatch:20_work_orders": 14,
+    "shift_complete": 1,
+    "log_stopped": 1
+  },
+  "by_phase": {
+    "morning_intake": 1508,
+    "midday_it_ops": 1686,
+    "endofday_monthend_audit": 1355
+  },
+  "work_orders_created": 1020,
+  "work_orders_completed": 1020,
+  "work_orders_failed": 0,
+  "artifacts_generated": 120,
+  "phase_transitions": [
+    {
+      "phase": "morning_intake",
+      "ts_utc": "2026-02-25T07:11:59.109916"
+    },
+    {
+      "phase": "midday_it_ops",
+      "ts_utc": "2026-02-25T07:47:00.977787"
+    },
+    {
+      "phase": "endofday_monthend_audit",
+      "ts_utc": "2026-02-25T08:22:00.471847"
+    }
+  ],
+  "log_file": "/workspace/backend/sim_logs/shift_log_20260225_071159_seed20260225.jsonl",
+  "elapsed_real_seconds": 6002.2,
+  "elapsed_real_minutes": 100.0,
+  "total_agent_cycles": 2460,
+  "speed": 6.0,
+  "seed": 20260225
+}

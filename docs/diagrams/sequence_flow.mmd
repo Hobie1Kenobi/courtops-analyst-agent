@@ -1,0 +1,31 @@
+sequenceDiagram
+    participant Clock as Sim Clock
+    participant Dir as Shift Director
+    participant WO as Work Order Queue
+    participant Agent as Specialist Agent
+    participant DB as PostgreSQL
+    participant SSE as SSE Stream
+    participant UI as Ops Console
+
+    Clock->>Dir: Phase transition (morning_intake)
+    Dir->>WO: Generate 21 work orders
+    Dir->>SSE: phase_start:morning_intake
+    SSE-->>UI: Live event update
+
+    loop Agent Tick Cycle (~2.4s)
+        Agent->>WO: Claim next work order (by priority)
+        WO-->>Agent: WorkOrder (ASSIGNED)
+        Agent->>SSE: started:{wo_type}
+        SSE-->>UI: Action in lane
+        Agent->>DB: Execute task (resolve ticket / sweep SLA / create patch)
+        Agent->>DB: Log audit event
+        Agent->>WO: Complete work order
+        Agent->>SSE: completed:{wo_type} + KPIs
+        SSE-->>UI: KPI cards update + feed entry
+    end
+
+    Note over Dir,UI: Phase advances at 35% → midday_it_ops, 70% → endofday_audit
+
+    Agent->>DB: Generate PDF artifact
+    Agent->>SSE: completed:monthly_ops_package + artifact
+    SSE-->>UI: Artifact appears in panel

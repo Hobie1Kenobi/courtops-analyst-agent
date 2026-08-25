@@ -1,0 +1,9 @@
+=== docker ps -a ===
+CONTAINER ID   IMAGE         COMMAND                  CREATED        STATUS        PORTS                                         NAMES
+50e842c06dda   postgres:15   "docker-entrypoint.s…"   14 hours ago   Up 14 hours   0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp   courtops-db
+a1fc1dc6dd75   redis:7       "docker-entrypoint.s…"   14 hours ago   Up 14 hours   0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp   courtops-redis
+
+=== docker images --digests ===
+REPOSITORY   TAG       DIGEST                                                                    IMAGE ID       CREATED        SIZE
+redis        7         sha256:24df5bc6e445f361078bd4d22181ef885dcf7df1b9598389c8fef6f1d4fe168f   a7f6d19aede6   24 hours ago   117MB
+postgres     15        sha256:2bc89eed5490967e6b1fa5175d84cb45d65f19fbb8973c7b23450dea785b9505   ed30a5ab521a   24 hours ago   445MB

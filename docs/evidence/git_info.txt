@@ -1,0 +1,42 @@
+=== HEAD ===
+6616cd319262531b5b93ab7ada361a016eb065c1
+
+=== git status ===
+On branch cursor/development-environment-setup-ca7f
+Your branch is up to date with 'origin/cursor/development-environment-setup-ca7f'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	backend/reports/
+	docs/evidence/
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+=== git log -10 ===
+6616cd3 Full-day sim complete: 1,020 WOs, 4,551 events, 120 artifacts in 100 min (seed 20260225)
+91502c9 Add comprehensive sim logger, scaled workload, and overnight run support
+34fd102 Add package-lock.json, cached public data, and Next.js auto-generated files
+b01f9a6 Improve agent tick rates and director redispatch for better demo pacing
+d6a6c80 Update README with Municipal Shift Simulation docs and AGENTS.md with sim instructions
+12a4fe0 Add Ops Console UI, Tour Mode, demo scripts, new tests, and cases auth fix
+a0e1a86 Add work orders, sim clock, agents, ops stream, seed runner, and admin endpoints
+f8cb62e Add AGENTS.md with cloud-specific dev instructions and ESLint config for frontend
+c4e7f7f Add daily_ops_robust preset (Phase 1 & 2), docs, and script
+d6c2f4b agent: review dry-run-off results; validate create_change_request, tighten daily_ops_demo goal
+
+=== git diff --stat HEAD~5 ===
+ AGENTS.md                                          |   19 +-
+ README.md                                          |   45 +
+ backend/app/agents/director.py                     |   17 +-
+ backend/app/api/routes/admin.py                    |   21 +-
+ backend/app/ops/stream.py                          |    8 +
+ backend/app/sim/events.py                          |   67 +-
+ backend/app/sim/logger.py                          |  129 +
+ backend/app/sim/runner.py                          |   59 +-
+ .../data/public_cache/cc_service_categories.json   |   42 +
+ .../shift_log_20260225_071159_seed20260225.jsonl   | 4551 +++++++++++++++
+ .../sim_logs/shift_summary_20260225_085201.json    |   72 +
+ frontend/next-env.d.ts                             |    5 +
+ frontend/package-lock.json                         | 6061 ++++++++++++++++++++
+ frontend/tsconfig.json                             |   29 +-
+ 14 files changed, 11072 insertions(+), 53 deletions(-)

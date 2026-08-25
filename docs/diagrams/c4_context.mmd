@@ -1,0 +1,17 @@
+C4Context
+    title CourtOps Analyst Agent — System Context
+
+    Person(supervisor, "Shift Supervisor", "Monitors KPIs, reviews artifacts")
+    Person(analyst, "Court Analyst / IT Support", "Resolves tickets, runs compliance checks")
+
+    System(courtops, "CourtOps Analyst Agent", "Full-stack municipal court operations platform with multi-agent simulation")
+
+    System_Ext(postgres, "PostgreSQL 15", "Primary relational data store")
+    System_Ext(redis, "Redis 7", "Message broker / event bus")
+    System_Ext(publicdata, "Public Data Portals", "Corpus Christi ArcGIS, city open data")
+
+    Rel(supervisor, courtops, "Views Ops Console, downloads reports")
+    Rel(analyst, courtops, "Creates tickets, reviews cases")
+    Rel(courtops, postgres, "Reads/writes cases, tickets, work orders, audit events")
+    Rel(courtops, redis, "Celery broker, pub/sub")
+    Rel(courtops, publicdata, "Fetches public category data (read-only)")

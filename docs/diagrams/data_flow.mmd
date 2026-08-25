@@ -1,0 +1,66 @@
+flowchart LR
+    subgraph PublicSources["Public Data Sources"]
+        ARC["Corpus Christi<br/>ArcGIS Portal"]
+        CITY["City Service Pages<br/>(category reference)"]
+        FIN["Public Finance<br/>Metadata"]
+    end
+
+    subgraph Connectors["Data Connectors"]
+        C1["corpus_christi_arcgis.py<br/>Fetch + Cache categories"]
+        C2["corpus_christi_311.py<br/>Synthetic 311 generator"]
+        C3["corpus_christi_finance_docs.py<br/>Report terminology"]
+    end
+
+    subgraph SeedRunner["Deterministic Seed Runner"]
+        YAML["Profile YAML +<br/>Scenario YAML"]
+        RNG["Random(seed=YYYYMMDD)"]
+        GEN["Synthetic Record<br/>Generator"]
+    end
+
+    subgraph Database["PostgreSQL"]
+        CASES["500 Cases"]
+        TICKETS["127 Tickets"]
+        DEVICES["53 Devices"]
+        PATCHES["25 Patches"]
+        AUDIT["Audit Events"]
+    end
+
+    subgraph Analytics["Agent Processing"]
+        WO["Work Orders<br/>(1,020 created)"]
+        KPI["KPI Engine"]
+    end
+
+    subgraph Output["Reporting Artifacts"]
+        RPDF["Revenue-at-Risk PDF"]
+        MPDF["Monthly Ops PDF"]
+        ATXT["Audit Report"]
+        CSVR["CSV Exports"]
+    end
+
+    ARC --> C1
+    CITY --> C2
+    FIN --> C3
+    C1 --> GEN
+    C2 --> GEN
+    C3 --> GEN
+    YAML --> GEN
+    RNG --> GEN
+    GEN --> CASES
+    GEN --> TICKETS
+    GEN --> DEVICES
+    GEN --> PATCHES
+    GEN --> AUDIT
+    CASES --> WO
+    TICKETS --> WO
+    DEVICES --> WO
+    WO --> KPI
+    KPI --> RPDF
+    KPI --> MPDF
+    KPI --> ATXT
+    KPI --> CSVR
+
+    style ARC fill:#e0f2fe,stroke:#0284c7
+    style GEN fill:#dcfce7,stroke:#16a34a
+    style WO fill:#e9d5ff,stroke:#7c3aed
+    style RPDF fill:#fef3c7,stroke:#d97706
+    style MPDF fill:#fef3c7,stroke:#d97706

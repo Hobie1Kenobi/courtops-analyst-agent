@@ -1,0 +1,19 @@
+courtops-analyst-agent-frontend@0.1.0 /workspace/frontend
+├── @types/node@22.19.11
+├── @types/react-dom@18.3.7
+├── @types/react@18.3.28
+├── autoprefixer@10.4.24
+├── class-variance-authority@0.7.1
+├── clsx@2.1.1
+├── eslint-config-next@14.2.5
+├── eslint@8.57.1
+├── lucide-react@0.446.0
+├── next@14.2.5
+├── postcss@8.5.6
+├── react-dom@18.3.1
+├── react@18.3.1
+├── tailwind-merge@2.6.1
+├── tailwindcss@3.4.19
+├── typescript@5.9.3
+└── zod@3.25.76
+

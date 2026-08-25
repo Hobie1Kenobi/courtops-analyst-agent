@@ -1,0 +1,228 @@
+"""Training scenarios — realistic municipal IT analyst task sequences."""
+
+SCENARIOS = {
+    "daily_operations": {
+        "name": "Daily Operations",
+        "description": "Standard day: ticket triage, report requests, access issues, app checks.",
+        "phases": ["morning_triage", "midday_operations", "afternoon_closeout"],
+        "tasks": [
+            {
+                "title": "Triage incoming access request tickets",
+                "domain": "requirements_docs",
+                "business_context": "Finance department staff cannot access the monthly revenue report in the ERP system. Three users submitted tickets overnight.",
+                "description": "Review tickets, classify by urgency, identify if this is a permissions issue or application bug.",
+                "evidence_reviewed": "Ticket descriptions mention 'Access Denied' error on report URL. Users are in Finance role group. Last system update was 3 days ago.",
+                "decision_made": "This is a role-based access control (RBAC) issue introduced by the latest security patch. The Finance_ReportViewer role lost the 'ViewMonthlyRevenue' permission.",
+                "technical_detail": "In SQL Server, check the permission mapping:\n\nSELECT r.name AS RoleName, p.permission_name, p.state_desc\nFROM sys.database_role_members rm\nJOIN sys.database_principals r ON rm.role_principal_id = r.principal_id\nJOIN sys.database_permissions p ON p.grantee_principal_id = r.principal_id\nWHERE r.name = 'Finance_ReportViewer';",
+                "sql_or_config": "-- Fix: Re-grant the permission\nGRANT SELECT ON dbo.vw_MonthlyRevenue TO Finance_ReportViewer;\nGO\n\n-- Verify\nEXECUTE AS USER = 'finance_user1';\nSELECT TOP 5 * FROM dbo.vw_MonthlyRevenue;\nREVERT;",
+                "why_correct": "We checked the role permissions first because the error message pointed to access denial, not a data or application error. In enterprise environments, always check RBAC before assuming a code defect.",
+                "what_to_document": "1. Incident ticket number and description\n2. Root cause: permission regression from patch\n3. Fix applied: GRANT statement\n4. Verification: tested with finance user context\n5. Change request: update patch testing checklist to include permission validation",
+                "what_to_test": "1. Log in as each affected user and access the report\n2. Verify no other roles lost permissions\n3. Run the full RBAC audit script\n4. Check the audit log for the permission change timestamp",
+                "mentor_explanation": "This is one of the most common issues in enterprise application support. When a system update or patch is applied, security permissions can be silently changed. A skilled analyst always checks permissions BEFORE diving into application code. The key skill here is knowing SQL Server's security model (principals, roles, permissions) and being able to query sys.database_permissions to diagnose issues quickly.",
+                "interview_answer": "STAR: Situation — Three finance users reported access denial to a critical monthly report. Task — Diagnose root cause and restore access within SLA. Action — Queried SQL Server's sys.database_permissions to find the Finance_ReportViewer role had lost its SELECT grant on the revenue view after a security patch. Applied a targeted GRANT statement and verified with EXECUTE AS. Result — All three users restored within 30 minutes. Created a change request to add permission validation to the patch testing checklist, preventing recurrence.",
+                "skills_practiced": "sql_server,debugging,change_mgmt",
+                "phase": "morning_triage",
+            },
+            {
+                "title": "Debug report totals mismatch — Monthly Revenue Summary",
+                "domain": "sql_reporting",
+                "business_context": "Court Manager reports that the Monthly Revenue Summary shows $12,450 less than the finance system. This report is used for council budget presentations.",
+                "description": "Compare report SQL against source data, identify the discrepancy, fix the report query.",
+                "evidence_reviewed": "Report uses a stored procedure sp_MonthlyRevenueSummary. Finance system pulls from the same base tables but includes a 'pending' payment status that the report excludes.",
+                "decision_made": "The stored procedure's WHERE clause filters to status = 'completed' only. Finance system includes 'completed' AND 'pending'. Need to align the report definition with business requirements.",
+                "technical_detail": "Stored procedure comparison:\n\n-- Current (incorrect)\nSELECT SUM(amount) FROM payments WHERE status = 'completed' AND month = @ReportMonth\n\n-- Should be (per business requirement)\nSELECT SUM(amount) FROM payments WHERE status IN ('completed', 'pending') AND month = @ReportMonth\n\nThe $12,450 difference matches exactly the sum of 'pending' payments for the month.",
+                "sql_or_config": "-- Fix the stored procedure\nALTER PROCEDURE dbo.sp_MonthlyRevenueSummary\n    @ReportMonth VARCHAR(7)\nAS\nBEGIN\n    SET NOCOUNT ON;\n    SELECT \n        @ReportMonth AS report_month,\n        SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END) AS collected_revenue,\n        SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS pending_revenue,\n        SUM(amount) AS total_revenue\n    FROM dbo.payments\n    WHERE FORMAT(payment_date, 'yyyy-MM') = @ReportMonth\n      AND status IN ('completed', 'pending');\nEND;\nGO",
+                "why_correct": "We compared the exact SQL logic between two systems to find the filter discrepancy. In reporting, ALWAYS validate totals against the source system before changing code. The fix also improves the report by breaking out collected vs. pending, giving the Court Manager more useful information.",
+                "what_to_document": "1. Defect report with exact dollar variance\n2. Root cause: WHERE clause mismatch\n3. Fix: ALTER PROCEDURE with business-aligned filter\n4. Validation: totals now match finance system\n5. Updated functional spec for Monthly Revenue Summary report",
+                "what_to_test": "1. Run report for current month — verify total matches finance\n2. Run for previous 3 months — regression check\n3. Verify Crystal Reports / SSRS rendering still works\n4. UAT with Court Manager before promotion to production",
+                "mentor_explanation": "Report totals mismatches are the #1 reason analysts get called into urgent meetings. The key skill is methodical comparison: pull the source data independently, compare it to the report output, and narrow down which filter or join is causing the gap. Never guess — always prove with data. This is also a great example of why functional specs must be precise about which statuses to include.",
+                "interview_answer": "STAR: Situation — Court Manager flagged a $12,450 discrepancy between our Monthly Revenue Summary and the finance system, used for council presentations. Task — Find and fix the root cause before the next council meeting. Action — Compared the stored procedure's WHERE clause against the finance system's query logic. Found our report filtered to 'completed' payments only, while finance included 'pending'. The $12,450 matched pending payments exactly. Modified the stored procedure to include both statuses and added a breakdown column. Result — Report matched finance within the hour. Updated the functional spec and added the validation to our monthly QA checklist.",
+                "skills_practiced": "sql_server,stored_procedures,crystal_reports,debugging",
+                "phase": "midday_operations",
+            },
+            {
+                "title": "Diagnose failed web service integration — Court-to-State API",
+                "domain": "app_integration",
+                "business_context": "Nightly batch upload to the State reporting system has failed for 2 consecutive nights. Clerks cannot file dispositions with the State until this is resolved.",
+                "description": "Investigate the integration failure: check logs, test endpoint, identify root cause.",
+                "evidence_reviewed": "IIS logs show HTTP 401 Unauthorized responses. The API token was last rotated 5 days ago. Certificate expiration check shows the client cert expired yesterday.",
+                "decision_made": "The client SSL certificate used for mutual TLS authentication expired. Need to generate a new CSR, get it signed, and install the new cert in IIS.",
+                "technical_detail": "Web service integration pattern:\n1. Our IIS server sends SOAP/REST requests to State API\n2. Mutual TLS (mTLS) requires a valid client certificate\n3. Certificate expired 2026-02-23, failures started 2026-02-24\n\nIIS binding check:\nnetsh http show sslcert ipport=0.0.0.0:443\n\nPowerShell cert check:\nGet-ChildItem Cert:\\LocalMachine\\My | Where-Object {$_.Subject -like '*StateAPI*'} | Select-Object Subject, NotAfter, Thumbprint",
+                "sql_or_config": "# PowerShell: Generate new CSR\n$cert = New-SelfSignedCertificate -Subject 'CN=CourtOps-StateAPI' `\n    -KeyAlgorithm RSA -KeyLength 2048 -NotAfter (Get-Date).AddYears(2) `\n    -CertStoreLocation 'Cert:\\LocalMachine\\My'\n\n# Export for signing\nExport-Certificate -Cert $cert -FilePath C:\\Certs\\courtops_stateapi.cer\n\n# After receiving signed cert, bind in IIS:\nnetsh http add sslcert ipport=0.0.0.0:443 `\n    certhash=$($cert.Thumbprint) appid='{YOUR-APP-GUID}'",
+                "why_correct": "The 401 error combined with the timing (failures started exactly when the cert expired) made certificate expiration the prime suspect. In enterprise integrations, ALWAYS check certificate expiration dates as part of your monitoring checklist. This is a preventable outage.",
+                "what_to_document": "1. Incident report: integration down for 2 nights\n2. Root cause: client certificate expired\n3. Fix: new certificate generated and installed\n4. Prevention: add cert expiry monitoring (alert at 30 days before)\n5. Change request: implement automated certificate renewal process",
+                "what_to_test": "1. Send a test SOAP/REST request to the State API sandbox\n2. Verify the response is 200 OK with valid data\n3. Run a small batch upload (10 records) to confirm end-to-end\n4. Monitor the next nightly batch for success\n5. Verify IIS event logs show successful TLS handshake",
+                "mentor_explanation": "Integration failures are high-visibility incidents because they affect external partners. The diagnostic approach is: check HTTP status codes first (401 = auth, 500 = server, 503 = unavailable), then check the authentication mechanism (API key, OAuth token, or client certificate), then verify connectivity. Certificate management is a critical enterprise skill — most organizations have dozens of certs that expire on different schedules. Proactive monitoring prevents these outages.",
+                "interview_answer": "STAR: Situation — Our nightly data upload to the State reporting system failed for two consecutive nights, blocking court clerks from filing dispositions. Task — Diagnose and resolve the integration failure under SLA pressure. Action — Reviewed IIS logs showing 401 Unauthorized. Checked the mTLS client certificate and found it had expired the day before the failures began. Generated a new certificate via PowerShell, submitted it for signing, installed and bound it in IIS. Tested with a sandbox batch. Result — Integration restored within 4 hours. Implemented a certificate expiry monitoring alert at 30 days to prevent recurrence. Created a runbook for the cert renewal process.",
+                "skills_practiced": "web_services,iis_apache,powershell,debugging",
+                "phase": "midday_operations",
+            },
+            {
+                "title": "Generate end-of-day operations package",
+                "domain": "audit_compliance",
+                "business_context": "Compile the daily operations summary for the Court Manager: tickets resolved, SLA performance, system health, and any outstanding issues.",
+                "description": "Aggregate metrics, generate summary report, flag items needing management attention.",
+                "evidence_reviewed": "Today's ticket log, SLA dashboard, system health checks, integration status, pending change requests.",
+                "decision_made": "All critical tickets resolved. One medium-priority item carried over. Integration restored. Recommend scheduling the certificate renewal automation project.",
+                "technical_detail": "Daily ops package components:\n1. Ticket summary (opened/resolved/carried)\n2. SLA compliance percentage\n3. System availability metrics\n4. Integration health status\n5. Outstanding change requests\n6. Recommendations for management",
+                "sql_or_config": "-- Daily ticket summary query\nSELECT \n    COUNT(*) AS total_tickets,\n    SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) AS resolved,\n    SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) AS carried_over,\n    ROUND(SUM(CASE WHEN resolved_within_sla = 1 THEN 1.0 ELSE 0 END) / COUNT(*) * 100, 1) AS sla_pct\nFROM dbo.tickets\nWHERE CAST(created_at AS DATE) = CAST(GETDATE() AS DATE);",
+                "why_correct": "Daily ops packages are a core responsibility of an applications analyst. They demonstrate operational awareness, proactive communication, and the ability to translate technical status into business language. The Court Manager doesn't need to know about SQL permissions — they need to know 'finance staff can access reports again, here's what we did to prevent it from happening again.'",
+                "what_to_document": "1. Daily ops summary PDF\n2. SLA compliance report\n3. Incident summary with resolution notes\n4. Recommendations memo\n5. Updated change request backlog",
+                "what_to_test": "N/A — this is a reporting/documentation task. Verify all numbers match the source systems.",
+                "mentor_explanation": "The daily ops package is how an analyst proves their value to management. It shows you're not just fixing things — you're monitoring, measuring, and improving. In interviews, being able to describe your daily reporting discipline shows organizational maturity. Always include what you did, what's still pending, and what you recommend for improvement.",
+                "interview_answer": "In my role, I produce a daily operations summary for management that includes ticket resolution rates, SLA compliance, system availability, and recommendations. For example, after resolving a certificate-related integration outage, I included a recommendation to implement automated certificate monitoring, which was approved and prevented future incidents. This daily discipline ensures transparency and demonstrates proactive operational management.",
+                "skills_practiced": "process_docs,sql_server,change_mgmt",
+                "phase": "afternoon_closeout",
+            },
+        ],
+    },
+    "report_totals_mismatch": {
+        "name": "Report Totals Mismatch Investigation",
+        "description": "A critical financial report shows incorrect totals. Walk through the full debugging process.",
+        "phases": ["investigation", "root_cause", "fix_and_validate"],
+        "tasks": [
+            {
+                "title": "Receive and scope the report discrepancy",
+                "domain": "sql_reporting",
+                "business_context": "The Annual Court Revenue report for council presentation shows revenue $47,200 lower than the general ledger. The presentation is in 3 days.",
+                "description": "Gather details: which report, what period, who noticed, what's the expected vs actual value.",
+                "evidence_reviewed": "Report output PDF showing $1,234,800. GL extract showing $1,282,000. Difference: $47,200. Period: FY2025. Report source: stored procedure sp_AnnualCourtRevenue.",
+                "decision_made": "Need to compare the stored procedure logic line-by-line against the GL query to find the filter or join causing the gap.",
+                "technical_detail": "Step 1: Get both numbers independently\n\n-- Report number\nEXEC sp_AnnualCourtRevenue @FiscalYear = '2025';\n\n-- GL number (simplified)\nSELECT SUM(amount) FROM gl_entries\nWHERE account_code LIKE '4%' AND fiscal_year = '2025';",
+                "sql_or_config": "-- Deep dive: break down by category\nSELECT charge_category,\n       SUM(fine_amount) AS report_total\nFROM court_cases\nWHERE fiscal_year = '2025' AND status IN ('disposed','paid')\nGROUP BY charge_category\nORDER BY charge_category;\n\n-- Compare with GL by category\nSELECT account_subcategory,\n       SUM(amount) AS gl_total\nFROM gl_entries\nWHERE account_code LIKE '4%' AND fiscal_year = '2025'\nGROUP BY account_subcategory\nORDER BY account_subcategory;",
+                "why_correct": "Breaking the totals into categories is the standard debugging approach for report mismatches. It narrows the gap from one large number to specific line items where the difference exists.",
+                "what_to_document": "1. Discrepancy report with exact figures\n2. Comparison methodology\n3. Category-level breakdown showing where the gap is",
+                "what_to_test": "Run both queries for previous fiscal years to see if the mismatch is new or historical.",
+                "mentor_explanation": "When someone says 'the report is wrong,' your first job is to quantify the problem precisely. Get the exact expected value and actual value. Then systematically narrow down where the difference lives. Think of it like a binary search — keep splitting the data until you find the exact rows causing the gap.",
+                "interview_answer": "When investigating report discrepancies, I follow a systematic approach: first quantify the exact gap, then break totals into categories to isolate which segment is off, then compare source queries line-by-line. This methodical approach consistently finds root causes faster than guessing.",
+                "skills_practiced": "sql_server,stored_procedures,debugging",
+                "phase": "investigation",
+            },
+        ],
+    },
+    "failed_integration": {
+        "name": "Failed Integration Incident",
+        "description": "A critical system integration has stopped working. Diagnose and resolve under SLA pressure.",
+        "phases": ["detection", "diagnosis", "resolution"],
+        "tasks": [
+            {
+                "title": "Detect and classify the integration failure",
+                "domain": "app_integration",
+                "business_context": "The HR-to-Payroll interface has not transmitted data for the last pay period. Payroll processing is blocked.",
+                "description": "Check integration logs, identify the failure point, classify severity.",
+                "evidence_reviewed": "Integration scheduler shows last successful run 14 days ago. Error log: 'SOAP Fault: Invalid XML — unexpected element at line 47'. No code changes in the last 30 days.",
+                "decision_made": "The source system (HR) likely changed their data schema without notifying downstream consumers. Need to compare the current XML payload against the expected schema.",
+                "technical_detail": "SOAP integration debugging steps:\n1. Check the integration scheduler/job history\n2. Review error logs for the specific fault\n3. Capture a sample XML payload\n4. Compare against the WSDL/XSD schema\n5. Identify the schema change\n\nCommon causes:\n- Source system schema change (new field, renamed field)\n- Character encoding issues\n- Payload size exceeding limits\n- Network/firewall changes",
+                "sql_or_config": "# PowerShell: Test the SOAP endpoint\n$uri = 'https://hr-system.internal/api/PayrollExport'\n$body = Get-Content .\\sample_request.xml\ntry {\n    $response = Invoke-WebRequest -Uri $uri -Method POST `\n        -ContentType 'text/xml' -Body $body\n    $response.StatusCode\n} catch {\n    $_.Exception.Response.StatusCode\n    $_.ErrorDetails.Message\n}",
+                "why_correct": "The error message 'unexpected element at line 47' is the key clue — it tells us exactly where the XML parsing fails. Combined with no code changes on our side, the most likely cause is a schema change at the source.",
+                "what_to_document": "1. Incident ticket with severity and business impact\n2. Timeline of last successful run vs. failure\n3. Error log excerpts\n4. Schema comparison results\n5. Communication with source system team",
+                "what_to_test": "1. Validate the new schema against our parser\n2. Update our XSD if needed\n3. Test with a sample payload\n4. Run a small batch to verify end-to-end\n5. Monitor the next scheduled run",
+                "mentor_explanation": "Integration failures between enterprise systems are among the highest-impact incidents because they block business processes across departments. The key skill is systematic diagnosis: start with the error message, check what changed recently on both sides, and use the integration logs to pinpoint exactly where the data flow breaks. Always document the timeline — when it last worked, when it broke, what changed in between.",
+                "interview_answer": "STAR: Situation — HR-to-Payroll interface failed, blocking pay processing for 500+ employees. Task — Diagnose and resolve within 4-hour SLA. Action — Reviewed integration logs, found SOAP XML parsing error at line 47. Compared current HR payload against our XSD schema and found HR had added a new employee classification field. Updated our XML parser and XSD, tested with sample data, ran a successful batch. Result — Integration restored in 3 hours. Established a change notification process between HR and IT to prevent surprise schema changes.",
+                "skills_practiced": "web_services,debugging,powershell,process_docs",
+                "phase": "detection",
+            },
+        ],
+    },
+}
+
+
+LABS = {
+    "sql_fundamentals": {
+        "id": "sql_fundamentals",
+        "name": "SQL Fundamentals Lab",
+        "domain": "sql_server",
+        "description": "Practice creating tables, writing joins, debugging queries, and understanding stored procedures.",
+        "exercises": [
+            {
+                "id": "sql_1",
+                "title": "Create a Court Cases Table",
+                "instruction": "Write a CREATE TABLE statement for a court_cases table with: case_id (INT, PK), case_number (VARCHAR(20), UNIQUE), defendant_name (VARCHAR(100)), charge_type (VARCHAR(50)), filing_date (DATE), status (VARCHAR(20) DEFAULT 'open'), fine_amount (DECIMAL(10,2)).",
+                "expected_answer": "CREATE TABLE court_cases (\n    case_id INT PRIMARY KEY IDENTITY(1,1),\n    case_number VARCHAR(20) UNIQUE NOT NULL,\n    defendant_name VARCHAR(100) NOT NULL,\n    charge_type VARCHAR(50),\n    filing_date DATE NOT NULL,\n    status VARCHAR(20) DEFAULT 'open',\n    fine_amount DECIMAL(10,2) DEFAULT 0.00\n);",
+                "explanation": "Key points: IDENTITY for auto-increment in SQL Server (Oracle uses SEQUENCE), UNIQUE constraint on case_number for business key, DECIMAL(10,2) for money (never use FLOAT for currency), DEFAULT values for status and fine_amount.",
+                "oracle_equivalent": "CREATE TABLE court_cases (\n    case_id NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,\n    case_number VARCHAR2(20) UNIQUE NOT NULL,\n    defendant_name VARCHAR2(100) NOT NULL,\n    charge_type VARCHAR2(50),\n    filing_date DATE NOT NULL,\n    status VARCHAR2(20) DEFAULT 'open',\n    fine_amount NUMBER(10,2) DEFAULT 0.00\n);",
+                "tip": "SQL Server uses VARCHAR, Oracle uses VARCHAR2. SQL Server uses IDENTITY, Oracle traditionally uses SEQUENCE (or GENERATED AS IDENTITY in 12c+). Always use DECIMAL/NUMBER for financial data, never FLOAT."
+            },
+            {
+                "id": "sql_2",
+                "title": "Write a JOIN Query — Cases with Payments",
+                "instruction": "Write a query joining court_cases with a payments table to show each case's total paid amount. Include cases with no payments (LEFT JOIN).",
+                "expected_answer": "SELECT \n    c.case_number,\n    c.defendant_name,\n    c.fine_amount,\n    COALESCE(SUM(p.amount), 0) AS total_paid,\n    c.fine_amount - COALESCE(SUM(p.amount), 0) AS balance_due\nFROM court_cases c\nLEFT JOIN payments p ON c.case_id = p.case_id\nGROUP BY c.case_number, c.defendant_name, c.fine_amount;",
+                "explanation": "LEFT JOIN keeps all cases even without payments. COALESCE handles NULL sums (no payments = 0, not NULL). GROUP BY is required because SUM is an aggregate. The computed column balance_due gives business users what they actually need.",
+                "tip": "Common mistake: using INNER JOIN which drops cases with no payments. In reporting, LEFT JOIN is almost always what business users expect — they want to see ALL records, including those with zero activity."
+            },
+            {
+                "id": "sql_3",
+                "title": "Debug a Wrong Report Total",
+                "instruction": "This query returns $50,000 too much. Find the bug:\n\nSELECT SUM(p.amount) AS total_collected\nFROM court_cases c\nJOIN payments p ON c.case_id = p.case_id\nJOIN court_hearings h ON c.case_id = h.case_id;",
+                "expected_answer": "The bug is a CROSS JOIN effect: if a case has 3 hearings and 2 payments, each payment row is duplicated 3 times (3 × 2 = 6 rows instead of 2). Fix by removing the unnecessary hearings join or using a subquery:\n\nSELECT SUM(p.amount) AS total_collected\nFROM court_cases c\nJOIN payments p ON c.case_id = p.case_id;\n\n-- Or if you need hearing data:\nSELECT c.case_id, payment_total, hearing_count\nFROM court_cases c\nJOIN (SELECT case_id, SUM(amount) AS payment_total FROM payments GROUP BY case_id) p ON c.case_id = p.case_id\nJOIN (SELECT case_id, COUNT(*) AS hearing_count FROM court_hearings GROUP BY case_id) h ON c.case_id = h.case_id;",
+                "explanation": "This is the classic 'fan-out' or 'Cartesian product' problem. When you join two one-to-many tables through a parent, rows multiply. This is the #1 cause of inflated report totals in enterprise reporting. The fix is to aggregate BEFORE joining, or eliminate unnecessary joins.",
+                "tip": "Whenever a report total is too HIGH, check for accidental Cartesian products from multiple joins. Whenever it's too LOW, check for INNER JOINs that should be LEFT JOINs or missing status filters."
+            },
+        ],
+    },
+    "reporting_lab": {
+        "id": "reporting_lab",
+        "name": "Reporting & BI Lab",
+        "domain": "crystal_reports",
+        "description": "Build SSRS-style reports, validate totals, add parameters, and create executive summaries.",
+        "exercises": [
+            {
+                "id": "rpt_1",
+                "title": "Design a Parameterized Monthly Report",
+                "instruction": "Create the SQL for a stored procedure that accepts @StartDate and @EndDate parameters and returns ticket counts by category and priority with SLA compliance percentage.",
+                "expected_answer": "CREATE PROCEDURE sp_TicketSummaryByPeriod\n    @StartDate DATE,\n    @EndDate DATE\nAS\nBEGIN\n    SET NOCOUNT ON;\n    SELECT \n        category,\n        priority,\n        COUNT(*) AS ticket_count,\n        SUM(CASE WHEN resolved_within_sla = 1 THEN 1 ELSE 0 END) AS met_sla,\n        ROUND(\n            SUM(CASE WHEN resolved_within_sla = 1 THEN 1.0 ELSE 0 END) \n            / NULLIF(COUNT(*), 0) * 100, 1\n        ) AS sla_pct\n    FROM tickets\n    WHERE created_at >= @StartDate AND created_at < DATEADD(DAY, 1, @EndDate)\n    GROUP BY category, priority\n    ORDER BY category, priority;\nEND;",
+                "explanation": "Key reporting patterns: parameterized dates for flexibility, NULLIF to prevent division by zero, DATEADD for inclusive end date handling, CASE expressions for conditional aggregation, SET NOCOUNT ON for performance.",
+                "tip": "In SSRS/Crystal Reports, this stored procedure would be the data source. Parameters map to report dropdowns. Always use stored procedures for reports — they're version-controlled, testable, and perform better than inline SQL."
+            },
+        ],
+    },
+    "integration_lab": {
+        "id": "integration_lab",
+        "name": "Integration & Web Services Lab",
+        "domain": "web_services",
+        "description": "Trace API failures, fix field mappings, diagnose authentication issues.",
+        "exercises": [
+            {
+                "id": "int_1",
+                "title": "Diagnose a REST API 500 Error",
+                "instruction": "A REST API endpoint /api/cases/search returns HTTP 500. The error log shows: 'System.NullReferenceException: Object reference not set'. The request body is: {\"startDate\": \"2025-01-01\", \"endDate\": null}. What's the likely cause and fix?",
+                "expected_answer": "The endDate parameter is null, and the API code doesn't handle null values. The fix is to add null checking:\n\n// C# Fix\npublic IActionResult SearchCases(SearchRequest request)\n{\n    request.EndDate ??= DateTime.Today; // Default to today if null\n    \n    var cases = _context.Cases\n        .Where(c => c.FilingDate >= request.StartDate \n                 && c.FilingDate <= request.EndDate)\n        .ToList();\n    return Ok(cases);\n}\n\n// Also add validation:\nif (request.StartDate == default)\n    return BadRequest(\"startDate is required\");",
+                "explanation": "NullReferenceException is the most common .NET error. It means code tried to use a variable that was null. In API design, always validate inputs and provide sensible defaults. The null coalescing operator ??= is clean C# for setting defaults.",
+                "tip": "When debugging API errors: 1) Check the HTTP status code, 2) Read the error message/stack trace, 3) Look at the request payload for missing/null values, 4) Check if the issue is in validation, business logic, or data access."
+            },
+        ],
+    },
+    "debugging_lab": {
+        "id": "debugging_lab",
+        "name": "Debugging & QA Lab",
+        "domain": "debugging",
+        "description": "Reproduce issues, isolate root causes, write test scenarios, document defects.",
+        "exercises": [
+            {
+                "id": "dbg_1",
+                "title": "Write a Defect Report",
+                "instruction": "A user reports: 'When I search for cases by date range and click Export to CSV, the file is empty even though the screen shows 50 results.' Write a complete defect report.",
+                "expected_answer": "DEFECT REPORT\n\nID: DEF-2026-0042\nTitle: CSV Export produces empty file when search results exist\nSeverity: High (data export blocked)\nPriority: P2 (workaround: manual copy-paste)\nReported By: Court Clerk A\nDate: 2026-02-25\n\nSteps to Reproduce:\n1. Navigate to Cases > Search\n2. Set date range: 2025-01-01 to 2025-12-31\n3. Click Search — verify 50 results display\n4. Click 'Export to CSV'\n5. Open downloaded file\n\nExpected: CSV file contains 50 rows plus header\nActual: CSV file is empty (0 bytes)\n\nEnvironment: Production, Chrome 122, Windows 11\n\nNotes: Screen search works correctly. Issue appears to be in the export function only. Likely the export endpoint uses a separate query that doesn't receive the search parameters.\n\nAttachments: screenshot_search_results.png, empty_export.csv",
+                "explanation": "A good defect report has: clear title, severity/priority, exact reproduction steps, expected vs actual results, environment details, and initial analysis. The quality of your defect reports directly impacts how quickly developers can fix issues.",
+                "tip": "Severity = business impact (Critical/High/Medium/Low). Priority = urgency of fix (P1/P2/P3/P4). They're different: a typo on the login page is low severity but might be high priority if it's the CEO's name."
+            },
+        ],
+    },
+    "requirements_lab": {
+        "id": "requirements_lab",
+        "name": "Requirements & Documentation Lab",
+        "domain": "requirements",
+        "description": "Turn business requests into requirements documents, process flows, and change requests.",
+        "exercises": [
+            {
+                "id": "req_1",
+                "title": "Write a Business Requirement from a User Request",
+                "instruction": "A department head says: 'We need to be able to run the monthly revenue report for any court location, not just the whole city. And we need it to show a comparison to the same month last year.' Turn this into formal business requirements.",
+                "expected_answer": "BUSINESS REQUIREMENTS DOCUMENT\n\nProject: Monthly Revenue Report Enhancement\nRequester: Court Operations Director\nDate: 2026-02-25\nPriority: Medium\n\nBR-1: Location Filter\nThe Monthly Revenue Report shall accept a Court Location parameter allowing the user to filter results by individual court location or view all locations combined.\nAcceptance Criteria: Report shows correct totals when filtered to each of the 3 court locations.\n\nBR-2: Year-over-Year Comparison\nThe Monthly Revenue Report shall display the current month's revenue alongside the same month from the previous year, with a variance column showing the dollar and percentage difference.\nAcceptance Criteria: For January 2026, the report shows Jan 2026 actual, Jan 2025 actual, dollar variance, and percentage variance.\n\nBR-3: No Impact to Existing Users\nThe enhanced report shall default to 'All Locations' and current year, preserving the existing behavior for users who don't need the new features.\nAcceptance Criteria: Without changing any parameters, the report produces the same output as the current version.\n\nFUNCTIONAL REQUIREMENTS:\nFR-1: Add @LocationID parameter (INT, nullable, default=NULL for all)\nFR-2: Add prior-year column using DATEADD(YEAR, -1, @ReportMonth)\nFR-3: Add variance columns (dollar and percentage)\nFR-4: Update Crystal Reports layout to include new columns\nFR-5: Update report parameter dropdown with location list",
+                "explanation": "Business requirements describe WHAT the system should do in business terms. Functional requirements describe HOW it should work technically. Acceptance criteria define how you'll prove it works. Always include a 'no regression' requirement (BR-3) to protect existing users.",
+                "tip": "The #1 skill gap for IT analysts is translating between business language and technical language. Practice taking vague requests ('we need it to show last year too') and turning them into precise, testable requirements with clear acceptance criteria."
+            },
+        ],
+    },
+}

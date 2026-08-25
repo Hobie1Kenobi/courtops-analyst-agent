@@ -1,0 +1,29 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-8.3.2, pluggy-1.6.0 -- /workspace/backend/venv/bin/python
+cachedir: .pytest_cache
+rootdir: /workspace/backend
+plugins: anyio-4.12.1
+collecting ... collected 10 items
+
+tests/test_audit_anomalies.py::test_detect_repeated_failed_logins_flags_burst PASSED [ 10%]
+tests/test_audit_anomalies.py::test_detect_repeated_failed_logins_ignores_sparse PASSED [ 20%]
+tests/test_case_time_to_disposition.py::test_time_to_disposition PASSED  [ 30%]
+tests/test_seed_determinism.py::test_seed_determinism PASSED             [ 40%]
+tests/test_sla_calculation.py::test_ticket_sla_due_date PASSED           [ 50%]
+tests/test_sse_events.py::test_sse_event_keys PASSED                     [ 60%]
+tests/test_work_order_dispatch.py::test_queue_routing_completeness PASSED [ 70%]
+tests/test_work_order_dispatch.py::test_clerk_ops_routing PASSED         [ 80%]
+tests/test_work_order_dispatch.py::test_it_ops_routing PASSED            [ 90%]
+tests/test_work_order_dispatch.py::test_finance_audit_routing PASSED     [100%]
+
+=============================== warnings summary ===============================
+venv/lib/python3.11/site-packages/pydantic/_internal/_config.py:291
+  /workspace/backend/venv/lib/python3.11/site-packages/pydantic/_internal/_config.py:291: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.8/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
+  /workspace/backend/venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 10 passed, 2 warnings in 3.21s ========================
