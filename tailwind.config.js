@@ -63,6 +63,9 @@ module.exports = {
       minWidth: {
         sidebar: "256px",
       },
+      padding: {
+        sidebar: "256px",
+      },
     }
   },
   plugins: []
