@@ -14,6 +14,12 @@ from app.training.agents.engine import (
     start_training, stop_training,
 )
 from app.training.content.scenarios import SCENARIOS as SCENARIO_DATA, LABS as LAB_DATA
+from app.training.content.enterprise_scenarios import ENTERPRISE_SCENARIOS
+from app.training.content.enterprise_labs import ENTERPRISE_LABS
+from app.training.content.enterprise_scenarios_ext import ENTERPRISE_SCENARIOS_EXT
+from app.training.content.advanced_labs import ADVANCED_LABS
+ALL_SCENARIO_DATA = {**SCENARIO_DATA, **ENTERPRISE_SCENARIOS, **ENTERPRISE_SCENARIOS_EXT}
+ALL_LAB_DATA = {**LAB_DATA, **ENTERPRISE_LABS, **ADVANCED_LABS}
 
 router = APIRouter(prefix="/training", tags=["training"])
 
@@ -56,7 +62,7 @@ class SkillRead(BaseModel):
 
 @router.get("/scenarios")
 def list_scenarios():
-    return {k: {"name": v["name"], "description": v["description"], "task_count": len(v["tasks"])} for k, v in SCENARIO_DATA.items()}
+    return {k: {"name": v["name"], "description": v["description"], "system": v.get("system", "general"), "task_count": len(v["tasks"])} for k, v in ALL_SCENARIO_DATA.items()}
 
 
 @router.post("/scenarios/{scenario_key}/seed")
@@ -117,12 +123,12 @@ def list_agents():
 
 @router.get("/labs")
 def list_labs():
-    return {k: {"id": v["id"], "name": v["name"], "domain": v["domain"], "description": v["description"], "exercise_count": len(v["exercises"])} for k, v in LAB_DATA.items()}
+    return {k: {"id": v["id"], "name": v["name"], "domain": v["domain"], "description": v["description"], "exercise_count": len(v["exercises"])} for k, v in ALL_LAB_DATA.items()}
 
 
 @router.get("/labs/{lab_id}")
 def get_lab(lab_id: str):
-    lab = LAB_DATA.get(lab_id)
+    lab = ALL_LAB_DATA.get(lab_id)
     if not lab:
         from fastapi import HTTPException
         raise HTTPException(404, "Lab not found")
@@ -131,7 +137,7 @@ def get_lab(lab_id: str):
 
 @router.post("/labs/{lab_id}/submit")
 def submit_lab(lab_id: str, exercise_id: str = Query(...), answer: str = Query(default=""), db: Session = Depends(get_db)):
-    lab = LAB_DATA.get(lab_id)
+    lab = ALL_LAB_DATA.get(lab_id)
     if not lab:
         from fastapi import HTTPException
         raise HTTPException(404, "Lab not found")
